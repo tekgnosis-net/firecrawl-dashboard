@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   firecrawl-dashboard:
-    image: ghcr.io/tekgnosis-net/firecrawl-dashboard:latest
+    image: firecrawl-dashboard:local
     container_name: firecrawl-dashboard
     ports:
       - "3003:3001"
