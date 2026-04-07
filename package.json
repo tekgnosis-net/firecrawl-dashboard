@@ -1,0 +1,39 @@
+{
+  "name": "firecrawl-dashboard",
+  "version": "1.0.0",
+  "description": "A beautiful monitoring dashboard for self-hosted Firecrawl instances with Apple Design System styling",
+  "main": "server/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently "npm run dev:server" "npm run dev:client"",
+    "dev:server": "node server/index.js",
+    "dev:client": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server/index.js"
+  },
+  "keywords": ["firecrawl", "dashboard", "monitoring", "web-scraping", "apple-design"],
+  "author": "Tekgnosis Pty Ltd <info@tekgnosis.net>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tekgnosis-net/firecrawl-dashboard"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "axios": "^1.6.2",
+    "date-fns": "^3.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.8",
+    "concurrently": "^8.2.2",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0"
+  }
+}

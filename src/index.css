@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {
+  body { @apply bg-apple-bg text-apple-text font-sans; }
+}
+@layer components {
+  .apple-card { @apply bg-apple-card rounded-apple-lg shadow-apple-card p-6; }
+  .apple-button { @apply bg-apple-blue text-white px-4 py-2 rounded-apple hover:bg-blue-600; }
+  .apple-input { @apply w-full px-4 py-3 rounded-apple border border-apple-separator; }
+  .apple-badge { @apply inline-flex items-center px-3 py-1 rounded-full text-sm; }
+}

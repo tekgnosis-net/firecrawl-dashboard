@@ -1,0 +1,52 @@
+version: '3.8'
+services:
+  firecrawl-dashboard:
+    build: .
+    container_name: firecrawl-dashboard
+    ports:
+      - "3003:3001"
+    environment:
+      - FIRECRAWL_URL=http://firecrawl:3002
+    networks:
+      - firecrawl-network
+    depends_on:
+      - firecrawl
+    restart: unless-stopped
+
+  firecrawl:
+    image: mendableai/firecrawl:latest
+    container_name: firecrawl
+    ports:
+      - "3002:3002"
+    environment:
+      - USE_DB_AUTHENTICATION=false
+      - DATABASE_URL=postgresql://firecrawl:firecrawl@firecrawl-db:5432/firecrawl
+      - REDIS_URL=redis://firecrawl-redis:6379
+    networks:
+      - firecrawl-network
+    depends_on:
+      - firecrawl-db
+      - firecrawl-redis
+    restart: unless-stopped
+
+  firecrawl-db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=firecrawl
+      - POSTGRES_PASSWORD=firecrawl
+      - POSTGRES_DB=firecrawl
+    volumes:
+      - firecrawl-db-data:/var/lib/postgresql/data
+    networks:
+      - firecrawl-network
+
+  firecrawl-redis:
+    image: redis:7-alpine
+    networks:
+      - firecrawl-network
+
+networks:
+  firecrawl-network:
+
+volumes:
+  firecrawl-db-data:
