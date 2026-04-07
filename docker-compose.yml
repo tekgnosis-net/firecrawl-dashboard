@@ -1,52 +1,17 @@
 version: '3.8'
+
 services:
   firecrawl-dashboard:
-    build: .
+    image: ghcr.io/tekgnosis-net/firecrawl-dashboard:latest
     container_name: firecrawl-dashboard
     ports:
       - "3003:3001"
     environment:
-      - FIRECRAWL_URL=http://firecrawl:3002
-    networks:
-      - firecrawl-network
-    depends_on:
-      - firecrawl
+      - FIRECRAWL_URL=http://10.0.20.66:3002
     restart: unless-stopped
-
-  firecrawl:
-    image: mendableai/firecrawl:latest
-    container_name: firecrawl
-    ports:
-      - "3002:3002"
-    environment:
-      - USE_DB_AUTHENTICATION=false
-      - DATABASE_URL=postgresql://firecrawl:firecrawl@firecrawl-db:5432/firecrawl
-      - REDIS_URL=redis://firecrawl-redis:6379
-    networks:
-      - firecrawl-network
-    depends_on:
-      - firecrawl-db
-      - firecrawl-redis
-    restart: unless-stopped
-
-  firecrawl-db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=firecrawl
-      - POSTGRES_PASSWORD=firecrawl
-      - POSTGRES_DB=firecrawl
-    volumes:
-      - firecrawl-db-data:/var/lib/postgresql/data
-    networks:
-      - firecrawl-network
-
-  firecrawl-redis:
-    image: redis:7-alpine
-    networks:
-      - firecrawl-network
-
-networks:
-  firecrawl-network:
-
-volumes:
-  firecrawl-db-data:
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
