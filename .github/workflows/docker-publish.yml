@@ -10,14 +10,14 @@ on:
         required: true
         default: 'v1.0.0'
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: tekgnosis-net/firecrawl-dashboard
-
 jobs:
   build-and-push:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      REGISTRY: ghcr.io
+      IMAGE_NAME: tekgnosis-net/firecrawl-dashboard
     permissions:
       contents: read
       packages: write
