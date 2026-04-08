@@ -3,51 +3,129 @@ import cors from 'cors';
 import axios from 'axios';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import Database from 'better-sqlite3';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
-const FIRECRAWL_URL = process.env.FIRECRAWL_URL || 'http://10.0.20.66:3002';
+// SQLite database setup
+const db = Database(join(__dirname, '../data/dashboard.db'));
+db.exec(`
+  CREATE TABLE IF NOT EXISTS scrapes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    url TEXT NOT NULL,
+    success INTEGER NOT NULL,
+    timestamp TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS searches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    query TEXT NOT NULL,
+    success INTEGER NOT NULL,
+    timestamp TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS maps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    url TEXT NOT NULL,
+    success INTEGER NOT NULL,
+    timestamp TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS crawls (
+    id TEXT PRIMARY KEY,
+    url TEXT NOT NULL,
+    max_pages INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+`);
 
-// In-memory storage
-const crawlJobs = new Map();
-const scrapeHistory = [];
-const searchHistory = [];
-const mapHistory = [];
+// Initialize default settings if not exists
+const existingSettings = db.prepare('SELECT COUNT(*) as count FROM settings').get();
+if (existingSettings.count === 0) {
+  const insertSetting = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)');
+  insertSetting.run('firecrawl_url', process.env.FIRECRAWL_URL || 'http://10.0.20.66:3002');
+  insertSetting.run('api_key', process.env.FIRECRAWL_API_KEY || '');
+}
+
+// Firecrawl API URL (can be overridden by settings)
+function getFirecrawlUrl() {
+  const setting = db.prepare('SELECT value FROM settings WHERE key = ?').get('firecrawl_url');
+  return setting?.value || process.env.FIRECRAWL_URL || 'http://10.0.20.66:3002';
+}
+
+function getApiKey() {
+  const setting = db.prepare('SELECT value FROM settings WHERE key = ?').get('api_key');
+  return setting?.value || process.env.FIRECRAWL_API_KEY || '';
+}
 
 app.get('/api/health', async (req, res) => {
   try {
-    const response = await axios.get(`${FIRECRAWL_URL}/`, { timeout: 5000 });
+    const response = await axios.get(`${getFirecrawlUrl()}/`, { timeout: 5000 });
     res.json({ status: 'healthy', firecrawl: response.data });
   } catch (error) {
     res.status(503).json({ status: 'unhealthy', error: error.message });
   }
 });
 
-app.get('/api/stats', (req, res) => {
+app.use(cors());
+app.use(express.json());
+
+// Settings API
+app.get('/api/settings', (req, res) => {
+  const firecrawlUrl = db.prepare('SELECT value FROM settings WHERE key = ?').get('firecrawl_url');
+  const apiKey = db.prepare('SELECT value FROM settings WHERE key = ?').get('api_key');
   res.json({ success: true, data: {
-    crawls: { total: crawlJobs.size, active: 0, completed: 0 },
-    scrapes: { total: scrapeHistory.length, success: scrapeHistory.filter(s => s.success).length, failed: scrapeHistory.filter(s => !s.success).length },
-    searches: { total: searchHistory.length, success: searchHistory.filter(s => s.success).length, failed: searchHistory.filter(s => !s.success).length },
-    maps: { total: mapHistory.length, success: mapHistory.filter(s => s.success).length, failed: mapHistory.filter(s => !s.success).length },
+    firecrawlUrl: firecrawlUrl?.value || '',
+    apiKey: apiKey?.value || ''
+  }});
+});
+
+app.post('/api/settings', (req, res) => {
+  const { firecrawlUrl, apiKey } = req.body;
+  try {
+    const updateSetting = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+    updateSetting.run('firecrawl_url', firecrawlUrl || '');
+    updateSetting.run('api_key', apiKey || '');
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/stats', (req, res) => {
+  const scrapes = db.prepare('SELECT * FROM scrapes').all();
+  const searches = db.prepare('SELECT * FROM searches').all();
+  const maps = db.prepare('SELECT * FROM maps').all();
+  const crawls = db.prepare('SELECT * FROM crawls').all();
+  
+  res.json({ success: true, data: {
+    crawls: { total: crawls.length, active: crawls.filter(c => c.status === 'pending').length, completed: crawls.filter(c => c.status === 'completed').length },
+    scrapes: { total: scrapes.length, success: scrapes.filter(s => s.success).length, failed: scrapes.filter(s => !s.success).length },
+    searches: { total: searches.length, success: searches.filter(s => s.success).length, failed: searches.filter(s => !s.success).length },
+    maps: { total: maps.length, success: maps.filter(s => s.success).length, failed: maps.filter(s => !s.success).length },
     uptime: process.uptime()
   }});
 });
 
 app.get('/api/crawls', (req, res) => {
-  res.json({ success: true, data: Array.from(crawlJobs.entries()).map(([id, job]) => ({ id, ...job })) });
+  const crawls = db.prepare('SELECT * FROM crawls ORDER BY created_at DESC').all();
+  res.json({ success: true, data: crawls });
 });
 
 app.post('/api/crawls', async (req, res) => {
   const { url, limit = 10 } = req.body;
   try {
-    const response = await axios.post(`${FIRECRAWL_URL}/v1/crawl`, { url, limit });
+    const headers = { 'Authorization': `Bearer ${getApiKey()}` };
+    const response = await axios.post(`${getFirecrawlUrl()}/v1/crawl`, { url, limit }, { headers });
     if (response.data.success) {
-      crawlJobs.set(response.data.id, { url, limit, status: 'pending', createdAt: new Date().toISOString() });
+      const crawlId = response.data.id;
+      const insert = db.prepare('INSERT INTO crawls (id, url, max_pages, status, created_at) VALUES (?, ?, ?, ?, ?)');
+      insert.run(crawlId, url, limit, 'pending', new Date().toISOString());
       res.json({ success: true, data: response.data });
     }
   } catch (error) {
@@ -57,7 +135,8 @@ app.post('/api/crawls', async (req, res) => {
 
 app.get('/api/crawls/:id', async (req, res) => {
   try {
-    const response = await axios.get(`${FIRECRAWL_URL}/v1/crawl/${req.params.id}`);
+    const headers = { 'Authorization': `Bearer ${getApiKey()}` };
+    const response = await axios.get(`${getFirecrawlUrl()}/v1/crawl/${req.params.id}`, { headers });
     res.json({ success: true, data: response.data });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -67,10 +146,14 @@ app.get('/api/crawls/:id', async (req, res) => {
 app.post('/api/scrape', async (req, res) => {
   const { url, formats = ['markdown'] } = req.body;
   try {
-    const response = await axios.post(`${FIRECRAWL_URL}/v1/scrape`, { url, formats });
-    scrapeHistory.unshift({ url, success: response.data.success, timestamp: new Date().toISOString() });
+    const headers = { 'Authorization': `Bearer ${getApiKey()}` };
+    const response = await axios.post(`${getFirecrawlUrl()}/v1/scrape`, { url, formats }, { headers });
+    const insert = db.prepare('INSERT INTO scrapes (url, success, timestamp) VALUES (?, ?, ?)');
+    insert.run(url, response.data.success ? 1 : 0, new Date().toISOString());
     res.json({ success: true, data: response.data.data });
   } catch (error) {
+    const insert = db.prepare('INSERT INTO scrapes (url, success, timestamp) VALUES (?, ?, ?)');
+    insert.run(url, 0, new Date().toISOString());
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -78,10 +161,14 @@ app.post('/api/scrape', async (req, res) => {
 app.post('/api/search', async (req, res) => {
   const { query, limit = 5 } = req.body;
   try {
-    const response = await axios.post(`${FIRECRAWL_URL}/v2/search`, { query, limit });
-    searchHistory.unshift({ query, success: response.data.success, timestamp: new Date().toISOString() });
+    const headers = { 'Authorization': `Bearer ${getApiKey()}` };
+    const response = await axios.post(`${getFirecrawlUrl()}/v2/search`, { query, limit }, { headers });
+    const insert = db.prepare('INSERT INTO searches (query, success, timestamp) VALUES (?, ?, ?)');
+    insert.run(query, response.data.success ? 1 : 0, new Date().toISOString());
     res.json({ success: true, data: response.data.data });
   } catch (error) {
+    const insert = db.prepare('INSERT INTO searches (query, success, timestamp) VALUES (?, ?, ?)');
+    insert.run(query, 0, new Date().toISOString());
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -89,17 +176,32 @@ app.post('/api/search', async (req, res) => {
 app.post('/api/map', async (req, res) => {
   const { url, limit = 100 } = req.body;
   try {
-    const response = await axios.post(`${FIRECRAWL_URL}/v2/map`, { url, limit });
-    mapHistory.unshift({ url, success: response.data.success, timestamp: new Date().toISOString() });
+    const headers = { 'Authorization': `Bearer ${getApiKey()}` };
+    const response = await axios.post(`${getFirecrawlUrl()}/v2/map`, { url, limit }, { headers });
+    const insert = db.prepare('INSERT INTO maps (url, success, timestamp) VALUES (?, ?, ?)');
+    insert.run(url, response.data.success ? 1 : 0, new Date().toISOString());
     res.json({ success: true, data: response.data.data });
   } catch (error) {
+    const insert = db.prepare('INSERT INTO maps (url, success, timestamp) VALUES (?, ?, ?)');
+    insert.run(url, 0, new Date().toISOString());
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-app.get('/api/history/scrape', (req, res) => res.json({ success: true, data: scrapeHistory }));
-app.get('/api/history/search', (req, res) => res.json({ success: true, data: searchHistory }));
-app.get('/api/history/map', (req, res) => res.json({ success: true, data: mapHistory }));
+app.get('/api/history/scrape', (req, res) => {
+  const data = db.prepare('SELECT * FROM scrapes ORDER BY timestamp DESC LIMIT 50').all();
+  res.json({ success: true, data });
+});
+
+app.get('/api/history/search', (req, res) => {
+  const data = db.prepare('SELECT * FROM searches ORDER BY timestamp DESC LIMIT 50').all();
+  res.json({ success: true, data });
+});
+
+app.get('/api/history/map', (req, res) => {
+  const data = db.prepare('SELECT * FROM maps ORDER BY timestamp DESC LIMIT 50').all();
+  res.json({ success: true, data });
+});
 
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(join(__dirname, '../dist')));

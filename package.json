@@ -12,7 +12,13 @@
     "preview": "vite preview",
     "start": "node server/index.js"
   },
-  "keywords": ["firecrawl", "dashboard", "monitoring", "web-scraping", "apple-design"],
+  "keywords": [
+    "firecrawl",
+    "dashboard",
+    "monitoring",
+    "web-scraping",
+    "apple-design"
+  ],
   "author": "Tekgnosis Pty Ltd <info@tekgnosis.net>",
   "license": "MIT",
   "repository": {
@@ -20,28 +26,31 @@
     "url": "https://github.com/tekgnosis-net/firecrawl-dashboard"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
     "axios": "^1.6.2",
+    "better-sqlite3": "^12.8.0",
+    "cors": "^2.8.5",
     "date-fns": "^3.0.0",
+    "express": "^4.18.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^5.0.8",
-    "concurrently": "^8.2.2",
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^3.4.0",
-    "@semantic-release/npm": "^12.0.0",
     "@semantic-release/git": "^10.0.0",
+    "@semantic-release/github": "^10.0.0",
+    "@semantic-release/npm": "^12.0.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "concurrently": "^8.2.2",
+    "postcss": "^8.4.32",
     "semantic-release": "^24.0.0",
-    "@semantic-release/github": "^10.0.0"
+    "tailwindcss": "^3.4.0",
+    "vite": "^5.0.8"
   },
   "release": {
-    "branches": ["main"],
+    "branches": [
+      "main"
+    ],
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
