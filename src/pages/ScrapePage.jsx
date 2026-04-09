@@ -32,7 +32,7 @@ export function ScrapePage() {
   const handleCopy = () => {
     const c = displayContent();
     if (!c) return;
-    navigator.clipboard.writeText(c).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    navigator.clipboard.writeText(c).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
   };
 
   const HistoryBadge = ({ success }) => (
