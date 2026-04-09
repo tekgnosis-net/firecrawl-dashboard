@@ -82,8 +82,11 @@ function getSetting(key) {
 }
 
 app.get('/api/health', async (req, res) => {
+  const url = req.query.url || getFirecrawlUrl();
+  const apiKey = req.query.apiKey || getApiKey();
   try {
-    const response = await axios.get(`${getFirecrawlUrl()}/`, { timeout: 5000 });
+    const headers = apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {};
+    const response = await axios.get(`${url}/`, { timeout: 5000, headers });
     res.json({ status: 'healthy', firecrawl: response.data });
   } catch (error) {
     res.status(503).json({ status: 'unhealthy', error: error.message });
@@ -337,8 +340,9 @@ function runHousekeeping() {
     }
   }
 
+  const totalDeleted = results.scrapes + results.searches + results.maps + results.crawls;
   db.pragma('wal_checkpoint(TRUNCATE)');
-  db.prepare('VACUUM').run();
+  if (totalDeleted > 0) db.prepare('VACUUM').run();
 
   const sizeAfter = getDbSize().formatted;
   console.log(`[housekeeping] scrapes=${results.scrapes} searches=${results.searches} maps=${results.maps} crawls=${results.crawls} db=${sizeBefore}→${sizeAfter}`);

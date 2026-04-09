@@ -11,13 +11,14 @@ import { MapPage } from './pages/MapPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 function App() {
-  const { loadSettings, fetchHealth, fetchStats, fetchCrawls } = useStore();
+  const { loadSettings, fetchHealth, fetchStats, fetchCrawls, stopPolling } = useStore();
 
   useEffect(() => {
     loadSettings(); // loads settings then starts polling
     fetchHealth();
     fetchStats();
     fetchCrawls();
+    return () => stopPolling();
   }, []);
 
   return (

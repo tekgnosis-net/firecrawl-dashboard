@@ -25,7 +25,7 @@ There is no test suite. The project uses semantic-release on the `main` branch �
 
 Two-process architecture in development, single process in production:
 
-**Frontend** (`src/`) — React 18 SPA built with Vite. Uses React Router v6 for client-side routing across 6 pages (`/`, `/crawl`, `/scrape`, `/search`, `/map`, `/settings`). `App.jsx` contains only the Router and Layout wrapper. Pages live in `src/pages/`, shared components in `src/components/` (with a `charts/` subdirectory for Recharts wrappers). State management via Zustand (`src/store.js`).
+**Frontend** (`src/`) — React 18 SPA built with Vite. Uses React Router v7 for client-side routing across 6 pages (`/`, `/crawl`, `/scrape`, `/search`, `/map`, `/settings`). `App.jsx` contains only the Router and Layout wrapper. Pages live in `src/pages/`, shared components in `src/components/` (with a `charts/` subdirectory for Recharts wrappers). State management via Zustand (`src/store.js`).
 
 **Backend** (`server/index.js`) — Express.js on port 3001 (dev) / configured by PORT env (prod). Proxies to the Firecrawl API. Persists operation history, crawl jobs, and settings to SQLite via `better-sqlite3`. Housekeeping runs 60s after startup then every 6 hours (age + row-count pruning + VACUUM).
 

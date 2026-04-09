@@ -38,7 +38,7 @@ export function SettingsPage() {
   const handleTest = async () => {
     setConnStatus('testing'); setConnMsg('');
     try {
-      const r = await axios.get('/api/health');
+      const r = await axios.get('/api/health', { params: { url: form.firecrawlUrl, apiKey: form.apiKey } });
       if (r.data.status === 'healthy') { setConnStatus('ok'); setConnMsg('Connection successful'); }
       else { setConnStatus('error'); setConnMsg(r.data.error || 'Unhealthy status'); }
     } catch (e) { setConnStatus('error'); setConnMsg(e.response?.data?.error || e.message); }

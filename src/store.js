@@ -67,6 +67,9 @@ export const useStore = create((set, get) => ({
     const { _pollingTimer } = get();
     if (_pollingTimer) clearInterval(_pollingTimer);
     if (!ms || ms === 0) { set({ _pollingTimer: null }); return; }
+    get().fetchHealth();
+    get().fetchStats();
+    get().fetchCrawls();
     const timer = setInterval(() => {
       get().fetchHealth();
       get().fetchStats();
