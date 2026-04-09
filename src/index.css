@@ -88,3 +88,7 @@
     color: var(--apple-red);
   }
 }
+
+@media (max-width: 768px) {
+  .apple-card { padding: 16px; }
+}
