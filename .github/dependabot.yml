@@ -1,0 +1,55 @@
+version: 2
+updates:
+  # GitHub Actions — keep action versions current
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps):"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # npm — keep runtime and dev dependencies updated
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps):"
+    labels:
+      - "dependencies"
+      - "npm"
+    groups:
+      npm-production:
+        dependency-type: "production"
+        patterns:
+          - "*"
+      npm-development:
+        dependency-type: "development"
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "semantic-release"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@semantic-release/*"
+        update-types: ["version-update:semver-major"]
+
+  # Docker — keep base image updated (Node.js minor/patch, Alpine security patches)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps):"
+    labels:
+      - "dependencies"
+      - "docker"
