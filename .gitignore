@@ -35,3 +35,9 @@ Thumbs.db
 
 # Vite cache
 .vite/
+
+# Git worktrees
+.worktrees/
+
+# Superpowers brainstorm artifacts
+.superpowers/
