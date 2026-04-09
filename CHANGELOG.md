@@ -1,3 +1,10 @@
+## [1.3.4](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.3.3...v1.3.4) (2026-04-09)
+
+
+### Bug Fixes
+
+* settings focus loss + auto-save (Apple HIG pattern) ([8acabe3](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/8acabe3480b105ff1f1d090ee0de8f76e0af3d63))
+
 ## [1.3.3](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.3.2...v1.3.3) (2026-04-09)
 
 
