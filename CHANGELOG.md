@@ -1,3 +1,10 @@
+## [1.2.4](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.2.3...v1.2.4) (2026-04-09)
+
+
+### Bug Fixes
+
+* **ci:** trigger Docker Publish workflow after semantic-release creates a tag ([9ee4248](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/9ee42482458dddbdf291f0b3f17c7bf83fca04ed))
+
 ## [1.2.3](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.2.2...v1.2.3) (2026-04-09)
 
 
