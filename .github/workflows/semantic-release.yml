@@ -32,6 +32,18 @@ jobs:
         run: npm ci
 
       - name: Create Release
+        id: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release
+        run: |
+          npx semantic-release
+          # Capture the new tag if a release was created
+          NEW_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "new_tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger Docker Publish
+        if: steps.release.outputs.new_tag != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run docker-publish.yml --field tag="${{ steps.release.outputs.new_tag }}"
