@@ -40,7 +40,7 @@
     "autoprefixer": "^10.4.16",
     "concurrently": "^8.2.2",
     "date-fns": "^3.0.0",
-    "postcss": "^8.4.32",
+    "postcss": "^8.5.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.14.0",
