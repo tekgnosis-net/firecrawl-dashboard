@@ -1,6 +1,13 @@
 node_modules
 dist
 .env
+.env.*
 *.md
 tests
 __tests__
+.git
+.github
+Dockerfile
+.dockerignore
+screenshots
+data
