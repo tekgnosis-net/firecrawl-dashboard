@@ -4,6 +4,18 @@ import axios from 'axios';
 
 const API_BASE = '/api';
 const SIDEBAR_KEY = 'firecrawl_sidebar_collapsed';
+const THEME_KEY = 'firecrawl_theme';
+
+function applyTheme(theme) {
+  if (theme === 'dark' || theme === 'light') {
+    document.documentElement.setAttribute('data-theme', theme);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+}
+
+// Apply saved theme immediately on load
+applyTheme(localStorage.getItem(THEME_KEY) || 'auto');
 
 export const useStore = create((set, get) => ({
   // UI state
@@ -11,6 +23,13 @@ export const useStore = create((set, get) => ({
   setSidebarCollapsed: (collapsed) => {
     localStorage.setItem(SIDEBAR_KEY, String(collapsed));
     set({ sidebarCollapsed: collapsed });
+  },
+
+  theme: localStorage.getItem(THEME_KEY) || 'auto',
+  setTheme: (theme) => {
+    localStorage.setItem(THEME_KEY, theme);
+    applyTheme(theme);
+    set({ theme });
   },
 
   // Server state

@@ -14,8 +14,12 @@ const SIDEBAR_DARK = '#1C1C1E';
 const SIDEBAR_BORDER = '#38383A';
 const SIDEBAR_MUTED = '#98989D';
 
+const THEME_ICONS = { auto: '◐', light: '☀', dark: '☾' };
+const THEME_LABELS = { auto: 'Auto', light: 'Light', dark: 'Dark' };
+const THEME_CYCLE = { auto: 'light', light: 'dark', dark: 'auto' };
+
 export function Sidebar() {
-  const { sidebarCollapsed, setSidebarCollapsed } = useStore();
+  const { sidebarCollapsed, setSidebarCollapsed, theme, setTheme } = useStore();
   const w = sidebarCollapsed ? '60px' : '220px';
 
   const navStyle = ({ isActive }) => ({
@@ -66,6 +70,14 @@ export function Sidebar() {
           <span style={{ fontSize: '16px', flexShrink: 0, lineHeight: 1 }}>⚙️</span>
           {!sidebarCollapsed && 'Settings'}
         </NavLink>
+        <button
+          onClick={() => setTheme(THEME_CYCLE[theme])}
+          title={`Theme: ${THEME_LABELS[theme]}`}
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: 'transparent', border: 'none', color: SIDEBAR_MUTED, cursor: 'pointer', fontSize: '13px', width: '100%', whiteSpace: 'nowrap', overflow: 'hidden' }}
+        >
+          <span style={{ fontSize: '14px', flexShrink: 0, lineHeight: 1 }}>{THEME_ICONS[theme]}</span>
+          {!sidebarCollapsed && THEME_LABELS[theme]}
+        </button>
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}

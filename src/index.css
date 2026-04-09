@@ -19,7 +19,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --apple-bg: #000000;
     --apple-card: #1C1C1E;
     --apple-text: #F5F5F7;
@@ -40,6 +40,27 @@
   }
 }
 
+/* Force dark mode regardless of system preference */
+:root[data-theme="dark"] {
+  --apple-bg: #000000;
+  --apple-card: #1C1C1E;
+  --apple-text: #F5F5F7;
+  --apple-text-secondary: #98989D;
+  --apple-blue: #0A84FF;
+  --apple-green: #30D158;
+  --apple-red: #FF453A;
+  --apple-gray: #8E8E93;
+  --apple-separator: #38383A;
+  --apple-surface: #2C2C2E;
+  --apple-shadow: rgba(0, 0, 0, 0.3);
+  --apple-shadow-card: rgba(0, 0, 0, 0.5);
+  --apple-error-bg: rgba(255, 69, 58, 0.12);
+  --apple-error-border: rgba(255, 69, 58, 0.35);
+  --apple-badge-success-bg: rgba(48, 209, 88, 0.16);
+  --apple-badge-error-bg: rgba(255, 69, 58, 0.15);
+  --apple-badge-info-bg: rgba(10, 132, 255, 0.15);
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -49,6 +70,8 @@
     background-color: var(--apple-bg);
     color-scheme: light dark;
   }
+  html[data-theme="dark"] { color-scheme: dark; }
+  html[data-theme="light"] { color-scheme: light; }
   body {
     @apply bg-apple-bg text-apple-text font-sans;
   }
