@@ -3,6 +3,7 @@ import cors from 'cors';
 import axios from 'axios';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { mkdirSync } from 'fs';
 import Database from 'better-sqlite3';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,8 +14,10 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// SQLite database setup
-const db = Database(join(__dirname, '../data/dashboard.db'));
+// SQLite database setup — ensure data/ directory exists
+const dbPath = join(__dirname, '../data/dashboard.db');
+mkdirSync(join(__dirname, '../data'), { recursive: true });
+const db = Database(dbPath);
 db.exec(`
   CREATE TABLE IF NOT EXISTS scrapes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
