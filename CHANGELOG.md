@@ -1,3 +1,10 @@
+## [1.3.3](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.3.2...v1.3.3) (2026-04-09)
+
+
+### Bug Fixes
+
+* settings data retention validation + dashboard failure breakdown ([c6b5d01](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/c6b5d0154e276305d24dbba099c1c128c7d8cdd2))
+
 ## [1.3.2](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.3.1...v1.3.2) (2026-04-09)
 
 
