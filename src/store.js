@@ -47,9 +47,13 @@ export const useStore = create((set, get) => ({
   saveSettings: async (newSettings) => {
     set({ loading: true, error: null });
     try {
-      await axios.post(`${API_BASE}/settings`, newSettings);
-      set({ settings: newSettings });
-      get().startPolling(newSettings.pollingInterval);
+      const r = await axios.post(`${API_BASE}/settings`, newSettings);
+      if (r.data.success) {
+        set({ settings: newSettings });
+        get().startPolling(newSettings.pollingInterval);
+      } else {
+        set({ error: r.data.error || 'Failed to save settings' });
+      }
     } catch (error) {
       set({ error: error.response?.data?.error || error.message });
     } finally {
@@ -124,11 +128,14 @@ export const useStore = create((set, get) => ({
   },
 
   cancelCrawl: async (id) => {
+    set({ loading: true, error: null });
     try {
       await axios.delete(`${API_BASE}/crawls/${id}`);
       await get().fetchCrawls();
     } catch (error) {
       set({ error: error.response?.data?.error || error.message });
+    } finally {
+      set({ loading: false });
     }
   },
 
@@ -175,12 +182,15 @@ export const useStore = create((set, get) => ({
   },
 
   clearHistory: async (type) => {
+    set({ loading: true, error: null });
     try {
       await axios.delete(`${API_BASE}/history/${type}`);
       await get().fetchHistory(type);
       await get().fetchStats();
     } catch (error) {
       set({ error: error.response?.data?.error || error.message });
+    } finally {
+      set({ loading: false });
     }
   },
 
