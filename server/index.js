@@ -10,6 +10,9 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors());
+app.use(express.json());
+
 // SQLite database setup
 const db = Database(join(__dirname, '../data/dashboard.db'));
 db.exec(`
@@ -44,12 +47,20 @@ db.exec(`
   );
 `);
 
-// Initialize default settings if not exists
-const existingSettings = db.prepare('SELECT COUNT(*) as count FROM settings').get();
-if (existingSettings.count === 0) {
-  const insertSetting = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)');
-  insertSetting.run('firecrawl_url', process.env.FIRECRAWL_URL || 'http://10.0.20.66:3002');
-  insertSetting.run('api_key', process.env.FIRECRAWL_API_KEY || '');
+// Initialize default settings if not exists, migrate new keys for existing installs
+const existingCount = db.prepare('SELECT COUNT(*) as c FROM settings').get().c;
+if (existingCount === 0) {
+  const ins = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)');
+  ins.run('firecrawl_url', process.env.FIRECRAWL_URL || 'http://10.0.20.66:3002');
+  ins.run('api_key', process.env.FIRECRAWL_API_KEY || '');
+  ins.run('polling_interval', '5000');
+  ins.run('retention_days', '30');
+  ins.run('retention_max_rows', '10000');
+} else {
+  const upsertIfMissing = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
+  upsertIfMissing.run('polling_interval', '5000');
+  upsertIfMissing.run('retention_days', '30');
+  upsertIfMissing.run('retention_max_rows', '10000');
 }
 
 // Firecrawl API URL (can be overridden by settings)
@@ -63,6 +74,10 @@ function getApiKey() {
   return setting?.value || process.env.FIRECRAWL_API_KEY || '';
 }
 
+function getSetting(key) {
+  return db.prepare('SELECT value FROM settings WHERE key = ?').get(key)?.value;
+}
+
 app.get('/api/health', async (req, res) => {
   try {
     const response = await axios.get(`${getFirecrawlUrl()}/`, { timeout: 5000 });
@@ -72,25 +87,26 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-app.use(cors());
-app.use(express.json());
-
 // Settings API
 app.get('/api/settings', (req, res) => {
-  const firecrawlUrl = db.prepare('SELECT value FROM settings WHERE key = ?').get('firecrawl_url');
-  const apiKey = db.prepare('SELECT value FROM settings WHERE key = ?').get('api_key');
   res.json({ success: true, data: {
-    firecrawlUrl: firecrawlUrl?.value || '',
-    apiKey: apiKey?.value || ''
+    firecrawlUrl: getSetting('firecrawl_url') || '',
+    apiKey: getSetting('api_key') || '',
+    pollingInterval: Number(getSetting('polling_interval')) || 5000,
+    retentionDays: Number(getSetting('retention_days')) || 30,
+    retentionMaxRows: Number(getSetting('retention_max_rows')) || 10000,
   }});
 });
 
 app.post('/api/settings', (req, res) => {
-  const { firecrawlUrl, apiKey } = req.body;
+  const { firecrawlUrl, apiKey, pollingInterval, retentionDays, retentionMaxRows } = req.body;
   try {
-    const updateSetting = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
-    updateSetting.run('firecrawl_url', firecrawlUrl || '');
-    updateSetting.run('api_key', apiKey || '');
+    const upsert = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+    upsert.run('firecrawl_url', firecrawlUrl ?? '');
+    upsert.run('api_key', apiKey ?? '');
+    upsert.run('polling_interval', String(pollingInterval ?? 5000));
+    upsert.run('retention_days', String(retentionDays ?? 30));
+    upsert.run('retention_max_rows', String(retentionMaxRows ?? 10000));
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
