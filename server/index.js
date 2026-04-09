@@ -172,6 +172,16 @@ app.get('/api/stats/domains', (req, res) => {
   }
 });
 
+app.get('/api/stats/dbsize', (req, res) => {
+  try { res.json({ success: true, data: getDbSize() }); }
+  catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/maintenance', (req, res) => {
+  try { res.json({ success: true, data: runHousekeeping() }); }
+  catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
 app.get('/api/crawls', (req, res) => {
   const crawls = db.prepare('SELECT * FROM crawls ORDER BY created_at DESC').all();
   res.json({ success: true, data: crawls });
@@ -294,5 +304,51 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(join(__dirname, '../dist')));
   app.get('*', (req, res) => res.sendFile(join(__dirname, '../dist/index.html')));
 }
+
+function getDbSize() {
+  const pageCount = db.pragma('page_count', { simple: true });
+  const pageSize = db.pragma('page_size', { simple: true });
+  const bytes = pageCount * pageSize;
+  const formatted = bytes < 1024 * 1024
+    ? `${(bytes / 1024).toFixed(1)} KB`
+    : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return { bytes, formatted };
+}
+
+function runHousekeeping() {
+  const retentionDays = Number(getSetting('retention_days')) || 30;
+  const maxRows = Number(getSetting('retention_max_rows')) || 10000;
+  const sizeBefore = getDbSize().formatted;
+  const results = { scrapes: 0, searches: 0, maps: 0, crawls: 0 };
+
+  if (retentionDays > 0) {
+    results.scrapes += db.prepare(`DELETE FROM scrapes WHERE timestamp < datetime('now', '-' || ? || ' days')`).run(retentionDays).changes;
+    results.searches += db.prepare(`DELETE FROM searches WHERE timestamp < datetime('now', '-' || ? || ' days')`).run(retentionDays).changes;
+    results.maps += db.prepare(`DELETE FROM maps WHERE timestamp < datetime('now', '-' || ? || ' days')`).run(retentionDays).changes;
+    results.crawls += db.prepare(`DELETE FROM crawls WHERE status IN ('completed','failed','cancelled') AND created_at < datetime('now', '-' || ? || ' days')`).run(retentionDays).changes;
+  }
+
+  for (const table of ['scrapes', 'searches', 'maps']) {
+    const count = db.prepare(`SELECT COUNT(*) as c FROM ${table}`).get().c;
+    if (count > maxRows) {
+      results[table] += db.prepare(
+        `DELETE FROM ${table} WHERE id NOT IN (SELECT id FROM ${table} ORDER BY timestamp DESC LIMIT ?)`
+      ).run(maxRows).changes;
+    }
+  }
+
+  db.pragma('wal_checkpoint(TRUNCATE)');
+  db.prepare('VACUUM').run();
+
+  const sizeAfter = getDbSize().formatted;
+  console.log(`[housekeeping] scrapes=${results.scrapes} searches=${results.searches} maps=${results.maps} crawls=${results.crawls} db=${sizeBefore}→${sizeAfter}`);
+  return { ...results, dbSizeBefore: sizeBefore, dbSizeAfter: sizeAfter };
+}
+
+// Run housekeeping 60s after startup, then every 6 hours
+setTimeout(() => {
+  runHousekeeping();
+  setInterval(runHousekeeping, 6 * 60 * 60 * 1000);
+}, 60 * 1000);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
