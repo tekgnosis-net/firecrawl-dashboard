@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.4.0...v1.5.0) (2026-04-09)
+
+
+### Features
+
+* add GitHub link with star CTA in sidebar + star history in README ([123d746](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/123d746536b64195b1ec307beb5122475f8ff09e))
+
 # [1.4.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.3.4...v1.4.0) (2026-04-09)
 
 
