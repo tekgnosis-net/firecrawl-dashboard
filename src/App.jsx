@@ -2,49 +2,49 @@ import React, { useEffect, useState } from 'react';
 import { useStore } from './store';
 
 function App() {
-  const { 
-    initTheme, setupThemeListener, theme, themeMode, setThemeMode, 
+  const {
+    initTheme, setupThemeListener, theme, themeMode, setThemeMode,
     startPolling, stopPolling, manualRefresh, loadSettings,
-    pollingInterval 
+    pollingInterval,
   } = useStore();
   const [activeTab, setActiveTab] = useState('dashboard');
-  
+
   useEffect(() => {
     initTheme();
     const listener = setupThemeListener();
     loadSettings();
-    startPolling(5000); // Auto-refresh every 5 seconds
-    
-    return () => {
-      stopPolling();
-    };
+    startPolling(5000);
+    return () => stopPolling();
   }, []);
 
   return (
     <div className={`min-h-screen bg-apple-bg ${theme === 'dark' ? 'dark' : ''}`}>
-      <header className="bg-apple-card shadow-apple sticky top-0 z-50">
+      <header className="bg-apple-card sticky top-0 z-50" style={{ boxShadow: '0 1px 0 var(--apple-separator)' }}>
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-3">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">🔥</div>
-              <div><h1 className="text-xl font-semibold">Firecrawl Dashboard</h1><p className="text-xs text-gray-500">Self-hosted monitoring</p></div>
+              <div>
+                <h1 className="text-xl font-semibold text-apple-text">Firecrawl Dashboard</h1>
+                <p className="text-xs text-apple-text-secondary">Self-hosted monitoring</p>
+              </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button onClick={manualRefresh} className="apple-button text-sm px-3 py-1" title="Refresh now">
-                🔄 {pollingInterval ? 'Refreshing...' : 'Paused'}
+              <button onClick={manualRefresh} className="apple-button text-sm px-3 py-1.5" title="Refresh now">
+                🔄 {pollingInterval ? 'Live' : 'Paused'}
               </button>
               <ThemeSelector mode={themeMode} setMode={setThemeMode} />
             </div>
           </div>
-          <nav className="flex space-x-2 border-t border-gray-200 dark:border-gray-700 pt-2">
-            {['dashboard', 'settings'].map(tab => (
-              <button 
+          <nav className="flex space-x-1">
+            {['dashboard', 'settings'].map((tab) => (
+              <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 text-sm capitalize ${
-                  activeTab === tab 
-                    ? 'text-blue-600 border-b-2 border-blue-600' 
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                className={`px-4 py-2 text-sm capitalize transition-colors ${
+                  activeTab === tab
+                    ? 'text-apple-blue border-b-2 border-apple-blue -mb-px'
+                    : 'text-apple-text-secondary hover:text-apple-text'
                 }`}
               >
                 {tab}
@@ -64,21 +64,20 @@ function ThemeSelector({ mode, setMode }) {
   const themes = [
     { key: 'auto', icon: '🖥️', label: 'System' },
     { key: 'light', icon: '☀️', label: 'Light' },
-    { key: 'dark', icon: '🌙', label: 'Dark' }
+    { key: 'dark', icon: '🌙', label: 'Dark' },
   ];
-  
   return (
-    <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full p-1">
-      {themes.map(t => (
+    <div className="flex items-center bg-apple-surface rounded-full p-1">
+      {themes.map((t) => (
         <button
           key={t.key}
           onClick={() => setMode(t.key)}
-          className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-            mode === t.key 
-              ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-400' 
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-          }`}
           title={t.label}
+          className={`px-3 py-1.5 rounded-full text-sm transition-all ${
+            mode === t.key
+              ? 'bg-apple-card shadow-apple text-apple-blue'
+              : 'text-apple-text-secondary hover:text-apple-text'
+          }`}
         >
           {t.icon}
         </button>
@@ -88,102 +87,122 @@ function ThemeSelector({ mode, setMode }) {
 }
 
 function Dashboard() {
-  const { health, stats, crawls, createCrawl, scrape, search, map, fetchHistory, scrapeHistory, searchHistory, mapHistory } = useStore();
-  const [url, setUrl] = React.useState('');
-  const [result, setResult] = React.useState(null);
-  const [activeTab, setActiveTab] = React.useState('crawls');
+  const {
+    health, stats, crawls, createCrawl, scrape, fetchHistory,
+    loading, error, clearError,
+    scrapeHistory, searchHistory, mapHistory,
+  } = useStore();
 
-  const history = {
-    scrape: scrapeHistory,
-    search: searchHistory,
-    map: mapHistory
-  };
+  const [crawlUrl, setCrawlUrl] = React.useState('');
+  const [scrapeUrl, setScrapeUrl] = React.useState('');
+  const [result, setResult] = React.useState(null);
+  const [activeTab, setActiveTab] = React.useState('scrape');
+
+  useEffect(() => { fetchHistory('scrape'); }, []);
+
+  const historyData = { scrape: scrapeHistory, search: searchHistory, map: mapHistory };
+  const currentHistory = historyData[activeTab] || [];
 
   return (
     <div className="space-y-6">
-      {health?.status === 'unhealthy' && <div className="bg-red-50 border border-red-200 rounded-lg p-4">⚠️ Firecrawl API is unavailable</div>}
-      
-      <div className="grid grid-cols-4 gap-4">
-        <div className="apple-card"><p className="text-gray-500 text-sm">Active Crawls</p><p className="text-3xl font-semibold">{stats?.crawls?.total || 0}</p></div>
-        <div className="apple-card"><p className="text-gray-500 text-sm">Scrapes</p><p className="text-3xl font-semibold">{stats?.scrapes?.total || 0}</p></div>
-        <div className="apple-card"><p className="text-gray-500 text-sm">Searches</p><p className="text-3xl font-semibold">{stats?.searches?.total || 0}</p></div>
-        <div className="apple-card"><p className="text-gray-500 text-sm">Uptime</p><p className="text-3xl font-semibold">{Math.round(stats?.uptime || 0)}s</p></div>
+      {health?.status === 'unhealthy' && (
+        <div className="apple-error-banner rounded-apple p-4">⚠️ Firecrawl API is unavailable</div>
+      )}
+      {error && (
+        <div className="apple-error-banner rounded-apple p-4 flex justify-between items-center">
+          <span className="text-sm">⚠️ {error}</span>
+          <button onClick={clearError} className="text-apple-red text-sm font-medium ml-4">Dismiss</button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="apple-card"><p className="text-apple-text-secondary text-sm">Active Crawls</p><p className="text-3xl font-semibold text-apple-text">{stats?.crawls?.total || 0}</p></div>
+        <div className="apple-card"><p className="text-apple-text-secondary text-sm">Scrapes</p><p className="text-3xl font-semibold text-apple-text">{stats?.scrapes?.total || 0}</p></div>
+        <div className="apple-card"><p className="text-apple-text-secondary text-sm">Searches</p><p className="text-3xl font-semibold text-apple-text">{stats?.searches?.total || 0}</p></div>
+        <div className="apple-card"><p className="text-apple-text-secondary text-sm">Uptime</p><p className="text-3xl font-semibold text-apple-text">{Math.round(stats?.uptime || 0)}s</p></div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="apple-card">
-          <h3 className="text-lg font-semibold mb-4">🕸️ Crawl Jobs</h3>
-          <form onSubmit={async (e) => { e.preventDefault(); await createCrawl(url); setUrl(''); }} className="flex space-x-2 mb-4">
-            <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="URL to crawl" className="apple-input flex-1" required />
-            <button type="submit" className="apple-button">Start</button>
+          <h3 className="text-lg font-semibold text-apple-text mb-4">🕸️ Crawl Jobs</h3>
+          <form
+            onSubmit={async (e) => { e.preventDefault(); try { await createCrawl(crawlUrl); setCrawlUrl(''); } catch (_) {} }}
+            className="flex space-x-2 mb-4"
+          >
+            <input type="url" value={crawlUrl} onChange={(e) => setCrawlUrl(e.target.value)} placeholder="URL to crawl" className="apple-input flex-1" required />
+            <button type="submit" className="apple-button" disabled={loading}>{loading ? 'Starting…' : 'Start'}</button>
           </form>
           <div className="space-y-2 max-h-64 overflow-y-auto">
+            {crawls.length === 0 && <p className="text-apple-text-secondary text-sm text-center py-4">No crawl jobs yet</p>}
             {crawls.map((crawl) => (
-              <div key={crawl.id} className="bg-gray-50 rounded-lg p-3">
-                <div className="flex justify-between"><span className="text-sm font-mono">{crawl.id.slice(0,8)}...</span><span className="text-xs bg-blue-100 px-2 py-1 rounded-full">{crawl.status}</span></div>
-                <p className="text-sm truncate">{crawl.url}</p>
+              <div key={crawl.id} className="apple-surface rounded-apple p-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-mono text-apple-text">{crawl.id.slice(0, 8)}…</span>
+                  <span className="apple-badge text-xs">{crawl.status}</span>
+                </div>
+                <p className="text-sm text-apple-text-secondary truncate mt-1">{crawl.url}</p>
               </div>
             ))}
           </div>
         </div>
 
         <div className="apple-card">
-          <h3 className="text-lg font-semibold mb-4">📄 Scrape</h3>
-          <form onSubmit={async (e) => { e.preventDefault(); const r = await scrape(url); setResult(r.data); setUrl(''); }} className="flex space-x-2 mb-4">
-            <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="URL to scrape" className="apple-input flex-1" required />
-            <button type="submit" className="apple-button">Scrape</button>
+          <h3 className="text-lg font-semibold text-apple-text mb-4">📄 Scrape</h3>
+          <form
+            onSubmit={async (e) => { e.preventDefault(); try { const r = await scrape(scrapeUrl); setResult(r.data); setScrapeUrl(''); } catch (_) {} }}
+            className="flex space-x-2 mb-4"
+          >
+            <input type="url" value={scrapeUrl} onChange={(e) => setScrapeUrl(e.target.value)} placeholder="URL to scrape" className="apple-input flex-1" required />
+            <button type="submit" className="apple-button" disabled={loading}>{loading ? 'Scraping…' : 'Scrape'}</button>
           </form>
-          {result && <div className="bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto"><p className="text-sm font-medium mb-2">{result.metadata?.title}</p><pre className="text-xs whitespace-pre-wrap">{result.markdown?.slice(0,500)}</pre></div>}
+          {result ? (
+            <div className="apple-surface rounded-apple p-3 max-h-48 overflow-y-auto">
+              <p className="text-sm font-medium text-apple-text mb-2">{result.metadata?.title}</p>
+              <pre className="text-xs whitespace-pre-wrap text-apple-text-secondary">{result.markdown?.slice(0, 500)}</pre>
+            </div>
+          ) : (
+            <p className="text-apple-text-secondary text-sm text-center py-4">Enter a URL to scrape its content</p>
+          )}
         </div>
       </div>
 
       <div className="apple-card">
-        <h3 className="text-lg font-semibold mb-4">📜 History</h3>
-        <div className="flex space-x-2 border-b border-gray-200 mb-4">
-          {['scrape','search','map'].map(t => <button key={t} onClick={() => { setActiveTab(t); fetchHistory(t); }} className={`px-4 py-2 text-sm ${activeTab===t?'text-blue-600 border-b-2 border-blue-600':'text-gray-500'}`}>{t}</button>)}
+        <h3 className="text-lg font-semibold text-apple-text mb-4">📜 History</h3>
+        <div className="flex space-x-1 border-b border-apple-separator mb-4">
+          {['scrape', 'search', 'map'].map((t) => (
+            <button
+              key={t}
+              onClick={() => { setActiveTab(t); fetchHistory(t); }}
+              className={`px-4 py-2 text-sm capitalize transition-colors ${
+                activeTab === t ? 'text-apple-blue border-b-2 border-apple-blue -mb-px' : 'text-apple-text-secondary hover:text-apple-text'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
         </div>
-        <div className="space-y-2 max-h-96 overflow-y-auto">
-          {activeTab === 'scrape' && history?.scrape?.map((item, i) => (
-            <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400 truncate">{item.url}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(item.timestamp).toLocaleString()}</p>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${item.success?'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200':'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
-                  {item.success ? '✓ Success' : '✗ Failed'}
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {currentHistory.length === 0 ? (
+            <p className="text-apple-text-secondary text-sm text-center py-4">No {activeTab} history yet</p>
+          ) : (
+            currentHistory.map((item, i) => (
+              <div key={i} className="apple-surface rounded-apple p-3 flex justify-between items-center gap-3">
+                <span className="text-sm text-apple-text truncate flex-1">{item.url || item.query || '—'}</span>
+                <span
+                  className="apple-badge text-xs shrink-0"
+                  style={!item.success ? { background: 'var(--apple-error-bg)', color: 'var(--apple-red)' } : {}}
+                >
+                  {item.success ? 'Success' : 'Failed'}
                 </span>
+                {item.timestamp && (
+                  <span className="text-xs text-apple-text-secondary shrink-0">
+                    {new Date(item.timestamp).toLocaleTimeString()}
+                  </span>
+                )}
               </div>
-            </div>
-          ))}
-          {activeTab === 'search' && history?.search?.map((item, i) => (
-            <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400 truncate">{item.query}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(item.timestamp).toLocaleString()}</p>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${item.success?'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200':'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
-                  {item.success ? '✓ Success' : '✗ Failed'}
-                </span>
-              </div>
-            </div>
-          ))}
-          {activeTab === 'map' && history?.map?.map((item, i) => (
-            <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400 truncate">{item.url}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(item.timestamp).toLocaleString()}</p>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${item.success?'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200':'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
-                  {item.success ? '✓ Success' : '✗ Failed'}
-                </span>
-              </div>
-            </div>
-          ))}
-          {(!history || history[activeTab]?.length === 0) && <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No {activeTab} history yet! Start some operations above~ (◕‿◕)</p>}
-       </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
@@ -195,18 +214,14 @@ function SettingsPanel() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    setFormData(settings);
-  }, [settings]);
+  useEffect(() => { setFormData(settings); }, [settings]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setMessage('');
-    
     const success = await saveSettings(formData);
     setSaving(false);
-    
     if (success) {
       setMessage('✅ Settings saved successfully!');
       setTimeout(() => setMessage(''), 3000);
@@ -218,11 +233,10 @@ function SettingsPanel() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="apple-card">
-        <h2 className="text-2xl font-semibold mb-6">⚙️ Settings</h2>
-        
+        <h2 className="text-2xl font-semibold text-apple-text mb-6">⚙️ Settings</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="form-label">Firecrawl API URL</label>
+            <label className="block text-sm font-medium text-apple-text mb-1">Firecrawl API URL</label>
             <input
               type="url"
               value={formData.firecrawlUrl || ''}
@@ -231,11 +245,10 @@ function SettingsPanel() {
               className="apple-input"
               required
             />
-            <p className="text-xs text-gray-500 mt-1">The URL of your self-hosted Firecrawl instance</p>
+            <p className="text-xs text-apple-text-secondary mt-1">The URL of your self-hosted Firecrawl instance</p>
           </div>
-
           <div>
-            <label className="form-label">API Key (Optional)</label>
+            <label className="block text-sm font-medium text-apple-text mb-1">API Key (Optional)</label>
             <input
               type="password"
               value={formData.apiKey || ''}
@@ -243,57 +256,38 @@ function SettingsPanel() {
               placeholder="Leave empty if authentication is disabled"
               className="apple-input"
             />
-            <p className="text-xs text-gray-500 mt-1">Only required if USE_DB_AUTHENTICATION=true</p>
+            <p className="text-xs text-apple-text-secondary mt-1">Only required if USE_DB_AUTHENTICATION=true</p>
           </div>
-
           {message && (
-            <div className={`p-3 rounded-lg text-sm ${
-              message.startsWith('✅') 
-                ? 'bg-green-50 text-green-700 border border-green-200' 
-                : 'bg-red-50 text-red-700 border border-red-200'
-            }`}>
+            <div className={`p-3 rounded-apple text-sm ${message.startsWith('✅') ? 'bg-apple-green/10 text-apple-green' : 'apple-error-banner'}`}>
               {message}
             </div>
           )}
-
           <div className="flex space-x-3">
-            <button 
-              type="submit" 
-              disabled={saving}
-              className="apple-button min-w-[120px]"
-            >
-              {saving ? '💾 Saving...' : '💾 Save Settings'}
+            <button type="submit" disabled={saving} className="apple-button min-w-[120px]">
+              {saving ? '💾 Saving…' : '💾 Save Settings'}
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setFormData(settings)}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              className="px-4 py-2 rounded-apple border border-apple-separator text-apple-text-secondary hover:text-apple-text"
             >
               Cancel
             </button>
           </div>
         </form>
-
-        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold mb-4">📊 Current Connection Status</h3>
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <span className={`w-3 h-3 rounded-full ${
-                settings.firecrawlUrl ? 'bg-green-500' : 'bg-red-500'
-              }`}></span>
-              <span className="text-sm font-medium">Firecrawl URL:</span>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {settings.firecrawlUrl || 'Not configured'}
-              </span>
+        <div className="mt-8 pt-6 border-t border-apple-separator">
+          <h3 className="text-lg font-semibold text-apple-text mb-4">📊 Current Connection Status</h3>
+          <div className="apple-surface rounded-apple p-4 space-y-2">
+            <div className="flex items-center space-x-2">
+              <span className={`w-3 h-3 rounded-full ${settings.firecrawlUrl ? 'bg-apple-green' : 'bg-apple-red'}`}></span>
+              <span className="text-sm font-medium text-apple-text">Firecrawl URL:</span>
+              <span className="text-sm text-apple-text-secondary">{settings.firecrawlUrl || 'Not configured'}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className={`w-3 h-3 rounded-full ${
-                settings.apiKey ? 'bg-blue-500' : 'bg-gray-400'
-              }`}></span>
-              <span className="text-sm font-medium">API Key:</span>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {settings.apiKey ? '✓ Configured' : 'Not set (using no-auth mode)'}
-              </span>
+              <span className={`w-3 h-3 rounded-full ${settings.apiKey ? 'bg-apple-blue' : 'bg-apple-gray'}`}></span>
+              <span className="text-sm font-medium text-apple-text">API Key:</span>
+              <span className="text-sm text-apple-text-secondary">{settings.apiKey ? '✓ Configured' : 'Not set (no-auth mode)'}</span>
             </div>
           </div>
         </div>

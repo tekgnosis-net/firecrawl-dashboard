@@ -1,12 +1,90 @@
+:root {
+  --apple-bg: #F5F5F7;
+  --apple-card: #FFFFFF;
+  --apple-text: #1D1D1F;
+  --apple-text-secondary: #86868B;
+  --apple-blue: #0071E3;
+  --apple-green: #34C759;
+  --apple-red: #FF3B30;
+  --apple-gray: #8E8E93;
+  --apple-separator: #D2D2D7;
+  --apple-surface: #EBEBED;
+  --apple-shadow: rgba(0, 0, 0, 0.04);
+  --apple-shadow-card: rgba(0, 0, 0, 0.08);
+  --apple-error-bg: rgba(255, 59, 48, 0.08);
+  --apple-error-border: rgba(255, 59, 48, 0.25);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --apple-bg: #000000;
+    --apple-card: #1C1C1E;
+    --apple-text: #F5F5F7;
+    --apple-text-secondary: #98989D;
+    --apple-blue: #0A84FF;
+    --apple-green: #30D158;
+    --apple-red: #FF453A;
+    --apple-gray: #8E8E93;
+    --apple-separator: #38383A;
+    --apple-surface: #2C2C2E;
+    --apple-shadow: rgba(0, 0, 0, 0.3);
+    --apple-shadow-card: rgba(0, 0, 0, 0.5);
+    --apple-error-bg: rgba(255, 69, 58, 0.12);
+    --apple-error-border: rgba(255, 69, 58, 0.35);
+  }
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 @layer base {
-  body { @apply bg-apple-bg text-apple-text font-sans; }
+  html {
+    background-color: var(--apple-bg);
+    color-scheme: light dark;
+  }
+  body {
+    @apply bg-apple-bg text-apple-text font-sans;
+  }
 }
+
 @layer components {
-  .apple-card { @apply bg-apple-card rounded-apple-lg shadow-apple-card p-6; }
-  .apple-button { @apply bg-apple-blue text-white px-4 py-2 rounded-apple hover:bg-blue-600; }
-  .apple-input { @apply w-full px-4 py-3 rounded-apple border border-apple-separator; }
-  .apple-badge { @apply inline-flex items-center px-3 py-1 rounded-full text-sm; }
+  .apple-card {
+    @apply bg-apple-card rounded-apple-lg p-6;
+    box-shadow: 0 4px 12px var(--apple-shadow-card);
+  }
+  .apple-button {
+    @apply bg-apple-blue text-white px-4 py-2 rounded-apple transition-all;
+  }
+  .apple-button:hover {
+    filter: brightness(1.1);
+  }
+  .apple-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .apple-input {
+    @apply w-full px-4 py-3 rounded-apple border border-apple-separator bg-apple-card text-apple-text;
+    outline: none;
+  }
+  .apple-input:focus {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(var(--apple-blue), 0.15);
+  }
+  .apple-input::placeholder {
+    color: var(--apple-text-secondary);
+  }
+  .apple-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm;
+    background: rgba(0, 113, 227, 0.1);
+    color: var(--apple-blue);
+  }
+  .apple-surface {
+    background: var(--apple-surface);
+  }
+  .apple-error-banner {
+    background: var(--apple-error-bg);
+    border: 1px solid var(--apple-error-border);
+    color: var(--apple-red);
+  }
 }
