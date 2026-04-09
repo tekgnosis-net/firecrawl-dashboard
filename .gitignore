@@ -52,3 +52,6 @@ docs/superpowers/
 
 # Claude memory (local only)
 .remember/
+
+# Playwright
+.playwright-mcp/
