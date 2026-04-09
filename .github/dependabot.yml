@@ -41,6 +41,23 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@semantic-release/*"
         update-types: ["version-update:semver-major"]
+      # Major bumps below require individual migration PRs — ignore until tackled deliberately
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitejs/plugin-react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "zustand"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "date-fns"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "concurrently"
+        update-types: ["version-update:semver-major"]
 
   # Docker — keep base image updated (Node.js minor/patch, Alpine security patches)
   - package-ecosystem: "docker"
@@ -53,3 +70,7 @@ updates:
     labels:
       - "dependencies"
       - "docker"
+    ignore:
+      # Stay on Node 22 LTS (supported until April 2027) — ignore major version bumps
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
