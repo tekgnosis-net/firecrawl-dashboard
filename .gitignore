@@ -1,4 +1,4 @@
-# Claude Code
+# Claude Code project instructions (stored at ~/.claude/projects/)
 CLAUDE.md
 
 # Dependencies
@@ -12,6 +12,13 @@ dist-ssr/
 .env
 .env.local
 .env.*.local
+
+# Runtime data
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Logs
 npm-debug.log*
@@ -41,3 +48,7 @@ Thumbs.db
 
 # Superpowers brainstorm artifacts
 .superpowers/
+docs/superpowers/
+
+# Claude memory (local only)
+.remember/
