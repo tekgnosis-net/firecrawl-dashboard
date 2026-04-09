@@ -197,10 +197,25 @@ app.get('/api/crawls/:id', async (req, res) => {
   try {
     const headers = { 'Authorization': `Bearer ${getApiKey()}` };
     const response = await axios.get(`${getFirecrawlUrl()}/v1/crawl/${req.params.id}`, { headers });
+    if (['completed', 'failed'].includes(response.data.status)) {
+      db.prepare('UPDATE crawls SET status = ? WHERE id = ?').run(response.data.status, req.params.id);
+    }
     res.json({ success: true, data: response.data });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+app.delete('/api/crawls/:id', async (req, res) => {
+  try {
+    const headers = { 'Authorization': `Bearer ${getApiKey()}` };
+    await axios.delete(`${getFirecrawlUrl()}/v1/crawl/${req.params.id}`, { headers });
+  } catch (_) {
+    // Best-effort — still update local status even if Firecrawl unreachable
+  } finally {
+    db.prepare('UPDATE crawls SET status = ? WHERE id = ?').run('cancelled', req.params.id);
+  }
+  res.json({ success: true });
 });
 
 app.post('/api/scrape', async (req, res) => {
@@ -261,6 +276,18 @@ app.get('/api/history/search', (req, res) => {
 app.get('/api/history/map', (req, res) => {
   const data = db.prepare('SELECT * FROM maps ORDER BY timestamp DESC LIMIT 50').all();
   res.json({ success: true, data });
+});
+
+app.delete('/api/history/:type', (req, res) => {
+  const tableMap = { scrape: 'scrapes', search: 'searches', map: 'maps' };
+  const table = tableMap[req.params.type];
+  if (!table) return res.status(400).json({ success: false, error: 'Invalid type. Use scrape, search, or map.' });
+  try {
+    const result = db.prepare(`DELETE FROM ${table}`).run();
+    res.json({ success: true, deleted: result.changes });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 if (process.env.NODE_ENV === 'production') {
