@@ -2,7 +2,7 @@
 
 A self-hosted monitoring dashboard for [Firecrawl](https://github.com/mendableai/firecrawl) instances. Built with React and Express, styled with an Apple Design System theme that supports light and dark mode.
 
-![Dashboard](./screenshots/dashboard.png)
+![Dashboard](./screenshots/dashboard.png?v=2)
 
 ## Features
 
@@ -20,11 +20,11 @@ A self-hosted monitoring dashboard for [Firecrawl](https://github.com/mendableai
 
 | Dashboard | Crawl | Scrape |
 |:-:|:-:|:-:|
-| ![Dashboard](./screenshots/dashboard.png) | ![Crawl](./screenshots/crawl.png) | ![Scrape](./screenshots/scrape.png) |
+| ![Dashboard](./screenshots/dashboard.png?v=2) | ![Crawl](./screenshots/crawl.png?v=2) | ![Scrape](./screenshots/scrape.png?v=2) |
 
 | Search | Map | Settings |
 |:-:|:-:|:-:|
-| ![Search](./screenshots/search.png) | ![Map](./screenshots/map.png) | ![Settings](./screenshots/settings.png) |
+| ![Search](./screenshots/search.png?v=2) | ![Map](./screenshots/map.png?v=2) | ![Settings](./screenshots/settings.png?v=2) |
 
 ## Quick Start
 
