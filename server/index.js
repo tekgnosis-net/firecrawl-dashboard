@@ -123,7 +123,7 @@ app.get('/api/stats', (req, res) => {
   const crawls = db.prepare('SELECT * FROM crawls').all();
 
   res.json({ success: true, data: {
-    crawls: { total: crawls.length, active: crawls.filter(c => c.status === 'pending').length, completed: crawls.filter(c => c.status === 'completed').length },
+    crawls: { total: crawls.length, active: crawls.filter(c => ['pending','scraping'].includes(c.status)).length, completed: crawls.filter(c => c.status === 'completed').length },
     scrapes: { total: scrapes.length, success: scrapes.filter(s => s.success).length, failed: scrapes.filter(s => !s.success).length },
     searches: { total: searches.length, success: searches.filter(s => s.success).length, failed: searches.filter(s => !s.success).length },
     maps: { total: maps.length, success: maps.filter(s => s.success).length, failed: maps.filter(s => !s.success).length },
@@ -207,7 +207,7 @@ app.get('/api/crawls/:id', async (req, res) => {
   try {
     const headers = { 'Authorization': `Bearer ${getApiKey()}` };
     const response = await axios.get(`${getFirecrawlUrl()}/v1/crawl/${req.params.id}`, { headers });
-    if (['completed', 'failed'].includes(response.data.status)) {
+    if (['completed', 'failed', 'scraping'].includes(response.data.status)) {
       db.prepare('UPDATE crawls SET status = ? WHERE id = ?').run(response.data.status, req.params.id);
     }
     res.json({ success: true, data: response.data });
