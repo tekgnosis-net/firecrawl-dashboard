@@ -1,30 +1,40 @@
 # Firecrawl Dashboard
 
-A self-hosted monitoring dashboard for [Firecrawl](https://github.com/mendableai/firecrawl) instances. Built with React and Express, styled with an Apple Design System theme that supports light and dark mode.
+A self-hosted monitoring dashboard for [Firecrawl](https://github.com/mendableai/firecrawl) instances. Crafted with an Apple-inspired design system featuring semantic color tokens, adaptive dark mode, frosted-glass sidebar, and smooth transitions throughout.
 
-![Dashboard](./screenshots/dashboard.png?v=2)
+![Dashboard](./screenshots/dashboard.png?v=3)
+
+## Design
+
+The UI follows Apple Human Interface Guidelines with purposeful restraint:
+
+- **Semantic color system** — All colors are CSS custom properties that automatically adapt between light and dark mode. No hardcoded hex values in components.
+- **Dark-first aesthetic** — True black backgrounds (`#000000`) with elevated card surfaces (`#1C1C1E`), matching the depth and contrast of native macOS/iOS apps.
+- **Adaptive theming** — Three-state theme selector (Auto / Light / Dark) in the sidebar. Auto follows system `prefers-color-scheme`, or manually override.
+- **Apple typography** — SF Pro font stack (`-apple-system`) with precise weight hierarchy (700 for headings, 600 for card titles, 400 for body).
+- **Subtle interactions** — `color-mix()` hover states on list items, spring-like button feedback, and smooth sidebar collapse transitions.
 
 ## Features
 
-- **Crawl Management** — Create, monitor, and cancel crawl jobs with live progress tracking
+- **Crawl Management** — Create, monitor, and cancel crawl jobs with live progress bars
 - **URL Scraping** — Scrape any URL and view results in markdown, HTML, or raw links
 - **Web Search** — Search the web through Firecrawl with configurable result limits
 - **Site Mapping** — Discover all URLs on a website
-- **Dashboard Analytics** — Activity charts, success rate breakdown, top domains, live crawl progress
-- **Auto-Save Settings** — Apple HIG-style instant-apply settings with connection testing
-- **Dark Mode** — Automatic light/dark mode via `prefers-color-scheme`
+- **Dashboard Analytics** — Activity charts, success/failure donut with per-type breakdown, top domains, live crawl progress
+- **Auto-Save Settings** — Apple HIG-style instant-apply settings with debounced text inputs and connection testing
+- **Theme Selector** — Auto / Light / Dark with sidebar toggle and `localStorage` persistence
 - **Persistent Storage** — SQLite database for operation history, settings, and crawl state
-- **Auto-Maintenance** — Configurable data retention with automatic pruning
+- **Auto-Maintenance** — Configurable data retention with scheduled pruning and manual VACUUM
 
 ## Screenshots
 
 | Dashboard | Crawl | Scrape |
 |:-:|:-:|:-:|
-| ![Dashboard](./screenshots/dashboard.png?v=2) | ![Crawl](./screenshots/crawl.png?v=2) | ![Scrape](./screenshots/scrape.png?v=2) |
+| ![Dashboard](./screenshots/dashboard.png?v=3) | ![Crawl](./screenshots/crawl.png?v=3) | ![Scrape](./screenshots/scrape.png?v=3) |
 
 | Search | Map | Settings |
 |:-:|:-:|:-:|
-| ![Search](./screenshots/search.png?v=2) | ![Map](./screenshots/map.png?v=2) | ![Settings](./screenshots/settings.png?v=2) |
+| ![Search](./screenshots/search.png?v=3) | ![Map](./screenshots/map.png?v=3) | ![Settings](./screenshots/settings.png?v=3) |
 
 ## Quick Start
 
@@ -101,7 +111,7 @@ Browser  ──►  Vite (dev) / Express (prod)  ──►  Firecrawl API
                SQLite (data/dashboard.db)
 ```
 
-**Frontend** — React 18 SPA with React Router v7, Zustand for state, Recharts for charts, Tailwind CSS with Apple Design System tokens. Six pages: Dashboard, Crawl, Scrape, Search, Map, Settings.
+**Frontend** — React 18 SPA with React Router v7, Zustand state management, Recharts data visualization, and Tailwind CSS with a full Apple Design System token layer. Six pages: Dashboard, Crawl, Scrape, Search, Map, Settings.
 
 **Backend** — Express.js proxy to Firecrawl API. Persists operation history, crawl jobs, and settings to SQLite via `better-sqlite3`. Automatic housekeeping prunes old records based on configurable retention.
 
