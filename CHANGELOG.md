@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.3.1...v1.3.2) (2026-04-09)
+
+
+### Bug Fixes
+
+* use named wildcard for Express catch-all route ([60f3f89](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/60f3f890b1043038cb2d6d14163fd6ff4a887f27))
+
 ## [1.3.1](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.3.0...v1.3.1) (2026-04-09)
 
 
