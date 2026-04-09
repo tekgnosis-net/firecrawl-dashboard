@@ -121,7 +121,7 @@ app.get('/api/stats', (req, res) => {
   const searches = db.prepare('SELECT * FROM searches').all();
   const maps = db.prepare('SELECT * FROM maps').all();
   const crawls = db.prepare('SELECT * FROM crawls').all();
-  
+
   res.json({ success: true, data: {
     crawls: { total: crawls.length, active: crawls.filter(c => c.status === 'pending').length, completed: crawls.filter(c => c.status === 'completed').length },
     scrapes: { total: scrapes.length, success: scrapes.filter(s => s.success).length, failed: scrapes.filter(s => !s.success).length },
@@ -129,6 +129,47 @@ app.get('/api/stats', (req, res) => {
     maps: { total: maps.length, success: maps.filter(s => s.success).length, failed: maps.filter(s => !s.success).length },
     uptime: process.uptime()
   }});
+});
+
+app.get('/api/stats/daily', (req, res) => {
+  const days = Math.min(parseInt(req.query.days) || 7, 90);
+  try {
+    const rows = db.prepare(`
+      SELECT date(timestamp) as date,
+        SUM(CASE WHEN type = 'scrape' THEN 1 ELSE 0 END) as scrapes,
+        SUM(CASE WHEN type = 'search' THEN 1 ELSE 0 END) as searches,
+        SUM(CASE WHEN type = 'map'    THEN 1 ELSE 0 END) as maps
+      FROM (
+        SELECT timestamp, 'scrape' as type FROM scrapes
+        UNION ALL SELECT timestamp, 'search' FROM searches
+        UNION ALL SELECT timestamp, 'map'    FROM maps
+      )
+      WHERE timestamp >= datetime('now', '-' || ? || ' days')
+      GROUP BY date ORDER BY date
+    `).all(days);
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/stats/domains', (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+  try {
+    const rows = db.prepare('SELECT url FROM scrapes').all();
+    const counts = {};
+    for (const { url } of rows) {
+      try { const h = new URL(url).hostname; counts[h] = (counts[h] || 0) + 1; }
+      catch (_) {}
+    }
+    const data = Object.entries(counts)
+      .map(([domain, count]) => ({ domain, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 app.get('/api/crawls', (req, res) => {
