@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.3.4...v1.4.0) (2026-04-09)
+
+
+### Features
+
+* add dark/light/auto theme selector ([9e47db2](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/9e47db25803a630199c0186797556ea7aa73e287))
+
 ## [1.3.4](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.3.3...v1.3.4) (2026-04-09)
 
 
