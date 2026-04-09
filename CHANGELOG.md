@@ -1,3 +1,10 @@
+## [1.2.5](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.2.4...v1.2.5) (2026-04-09)
+
+
+### Bug Fixes
+
+* **ci:** add actions:write permission so GITHUB_TOKEN can dispatch Docker Publish workflow ([9ec4400](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/9ec440015c654d9c62c016f30684faedda51b7e9))
+
 ## [1.2.4](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.2.3...v1.2.4) (2026-04-09)
 
 
