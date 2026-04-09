@@ -136,10 +136,16 @@ Browser  ──►  Vite (dev) / Express (prod)  ──►  Firecrawl API
 | `/api/history/:type` | GET/DELETE | Operation history (scrape/search/map) |
 | `/api/maintenance` | POST | Trigger manual housekeeping |
 
+## Star History
+
+If you find this dashboard useful, please consider giving it a star — it helps others discover the project!
+
+[![Star History Chart](https://api.star-history.com/svg?repos=tekgnosis-net/firecrawl-dashboard&type=Date)](https://star-history.com/#tekgnosis-net/firecrawl-dashboard&Date)
+
 ## License
 
 MIT — see [LICENSE](./LICENSE)
 
 ---
 
-Built by [Tekgnosis](https://tekgnosis.net)
+Built with ❤️ by [Tekgnosis](https://tekgnosis.net)
