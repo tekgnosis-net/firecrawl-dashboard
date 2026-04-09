@@ -16,6 +16,7 @@ jobs:
     permissions:
       contents: write
       issues: write
+      actions: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -37,7 +38,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npx semantic-release
-          # Capture the new tag if a release was created
           NEW_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           echo "new_tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
 
