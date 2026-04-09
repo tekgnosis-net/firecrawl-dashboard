@@ -12,7 +12,8 @@ export function SearchPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try { const r = await search(query, limit); setResults(r.data); fetchHistory('search'); } catch (_) {}
+    try { const r = await search(query, limit); setResults(r.data); } catch (_) {}
+    finally { fetchHistory('search'); }
   };
 
   return (
