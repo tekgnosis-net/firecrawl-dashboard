@@ -28,12 +28,15 @@ export function SettingsPage() {
   const [dbSize, setDbSize] = useState(null);
   const [maintenanceResult, setMaintenanceResult] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [formDirty, setFormDirty] = useState(false);
+
+  const updateForm = (updater) => { setFormDirty(true); setForm(updater); };
 
   const fetchDbSize = () => {
     axios.get('/api/stats/dbsize').then(r => { if (r.data.success) setDbSize(r.data.data.formatted); }).catch(() => {});
   };
 
-  useEffect(() => { setForm({ ...settings }); fetchDbSize(); }, [settings]);
+  useEffect(() => { if (!formDirty) setForm({ ...settings }); fetchDbSize(); }, [settings]);
 
   const handleTest = async () => {
     setConnStatus('testing'); setConnMsg('');
@@ -44,7 +47,7 @@ export function SettingsPage() {
     } catch (e) { setConnStatus('error'); setConnMsg(e.response?.data?.error || e.message); }
   };
 
-  const handleSave = async (e) => { e.preventDefault(); await saveSettings(form); };
+  const handleSave = async (e) => { e.preventDefault(); await saveSettings(form); setFormDirty(false); };
 
   const handleClearHistory = async (type) => {
     setConfirmAction(null);
@@ -96,11 +99,11 @@ export function SettingsPage() {
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <Card title="Connection">
           <Field label="Firecrawl URL">
-            <input type="url" value={form.firecrawlUrl} onChange={e => setForm(f => ({ ...f, firecrawlUrl: e.target.value }))} className="apple-input" placeholder="http://10.0.20.66:3002" />
+            <input type="url" value={form.firecrawlUrl} onChange={e => updateForm(f => ({ ...f, firecrawlUrl: e.target.value }))} className="apple-input" placeholder="http://10.0.20.66:3002" />
           </Field>
           <Field label="API Key">
             <div style={{ display: 'flex', gap: '8px' }}>
-              <input type={showKey ? 'text' : 'password'} value={form.apiKey} onChange={e => setForm(f => ({ ...f, apiKey: e.target.value }))} className="apple-input" placeholder="fc-… (leave empty if not required)" style={{ flex: 1 }} />
+              <input type={showKey ? 'text' : 'password'} value={form.apiKey} onChange={e => updateForm(f => ({ ...f, apiKey: e.target.value }))} className="apple-input" placeholder="fc-… (leave empty if not required)" style={{ flex: 1 }} />
               <button type="button" onClick={() => setShowKey(s => !s)} style={{ padding: '0 14px', borderRadius: '8px', border: '1px solid var(--apple-separator)', background: 'var(--apple-surface)', color: 'var(--apple-text-secondary)', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>{showKey ? 'Hide' : 'Show'}</button>
             </div>
           </Field>
@@ -115,7 +118,7 @@ export function SettingsPage() {
 
         <Card title="Auto-Refresh">
           <Field label="Refresh interval">
-            <select value={form.pollingInterval} onChange={e => setForm(f => ({ ...f, pollingInterval: Number(e.target.value) }))} className="apple-input">
+            <select value={form.pollingInterval} onChange={e => updateForm(f => ({ ...f, pollingInterval: Number(e.target.value) }))} className="apple-input">
               {POLLING_OPTIONS.map(({ label, value }) => <option key={value} value={value}>{label}</option>)}
             </select>
           </Field>
@@ -123,12 +126,12 @@ export function SettingsPage() {
 
         <Card title="Data Retention">
           <Field label="Keep history for">
-            <select value={form.retentionDays} onChange={e => setForm(f => ({ ...f, retentionDays: Number(e.target.value) }))} className="apple-input">
+            <select value={form.retentionDays} onChange={e => updateForm(f => ({ ...f, retentionDays: Number(e.target.value) }))} className="apple-input">
               {RETENTION_OPTIONS.map(({ label, value }) => <option key={value} value={value}>{label}</option>)}
             </select>
           </Field>
           <Field label="Max rows per history table">
-            <input type="number" value={form.retentionMaxRows} onChange={e => setForm(f => ({ ...f, retentionMaxRows: Number(e.target.value) }))} min="100" max="100000" step="500" className="apple-input" />
+            <input type="number" value={form.retentionMaxRows} onChange={e => updateForm(f => ({ ...f, retentionMaxRows: Number(e.target.value) }))} min="100" max="100000" step="100" className="apple-input" />
             <p style={{ fontSize: '11px', color: 'var(--apple-text-secondary)', marginTop: '4px' }}>Oldest rows pruned automatically when limit exceeded.</p>
           </Field>
           {dbSize && <p style={{ fontSize: '12px', color: 'var(--apple-text-secondary)', margin: 0 }}>Database size: <strong style={{ color: 'var(--apple-text)' }}>{dbSize}</strong></p>}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useStore } from '../store';
 import { ActivityChart } from '../components/charts/ActivityChart';
@@ -73,6 +74,7 @@ export function DashboardPage() {
         <div className="apple-card">
           <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--apple-text)', marginBottom: '8px' }}>Success Rate</h3>
           <SuccessRateChart stats={stats} />
+          {stats && <OperationBreakdown stats={stats} />}
         </div>
         <div className="apple-card">
           <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--apple-text)', marginBottom: '16px' }}>Top Domains</h3>
@@ -90,6 +92,43 @@ export function DashboardPage() {
             </div>
         }
       </div>
+    </div>
+  );
+}
+
+function OperationBreakdown({ stats }) {
+  const rows = [
+    { label: 'Scrapes',  success: stats.scrapes?.success ?? 0,  failed: stats.scrapes?.failed ?? 0,  to: '/scrape' },
+    { label: 'Searches', success: stats.searches?.success ?? 0, failed: stats.searches?.failed ?? 0, to: '/search' },
+    { label: 'Maps',     success: stats.maps?.success ?? 0,     failed: stats.maps?.failed ?? 0,     to: '/map' },
+  ];
+  const hasAny = rows.some(r => r.success + r.failed > 0);
+  if (!hasAny) return null;
+
+  return (
+    <div style={{ marginTop: '12px', borderTop: '1px solid var(--apple-separator)', paddingTop: '12px' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+        <thead>
+          <tr style={{ color: 'var(--apple-text-secondary)' }}>
+            <th style={{ textAlign: 'left', fontWeight: '500', paddingBottom: '6px' }}>Type</th>
+            <th style={{ textAlign: 'right', fontWeight: '500', paddingBottom: '6px' }}>OK</th>
+            <th style={{ textAlign: 'right', fontWeight: '500', paddingBottom: '6px' }}>Fail</th>
+            <th style={{ textAlign: 'right', fontWeight: '500', paddingBottom: '6px' }}>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ label, success, failed, to }) => (
+            <tr key={label}>
+              <td style={{ padding: '4px 0' }}>
+                <Link to={to} style={{ color: 'var(--apple-blue)', textDecoration: 'none' }}>{label}</Link>
+              </td>
+              <td style={{ textAlign: 'right', color: 'var(--apple-green)', padding: '4px 0' }}>{success}</td>
+              <td style={{ textAlign: 'right', color: failed > 0 ? 'var(--apple-red)' : 'var(--apple-text-secondary)', padding: '4px 0' }}>{failed}</td>
+              <td style={{ textAlign: 'right', color: 'var(--apple-text)', padding: '4px 0' }}>{success + failed}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
