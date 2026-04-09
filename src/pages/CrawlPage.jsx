@@ -131,7 +131,7 @@ function CrawlDetail({ crawl, onCancel }) {
   const pct = rawTotal > 0 ? Math.min(100, Math.round((completed / rawTotal) * 100)) : 0;
   const displayTotal = rawTotal > 0 ? rawTotal : crawl.max_pages || '?';
   const hasData = detail.data?.length > 0;
-  const isExpired = !isActive && !hasData && detail.status !== 'failed';
+  const isExpired = !isActive && !hasData && detail.status !== 'failed' && detail.status !== 'cancelled';
 
   return (
     <div style={{ background: 'var(--apple-surface)', borderRadius: '0 0 8px 8px', padding: '12px', borderTop: '1px solid var(--apple-separator)' }}>
@@ -148,6 +148,9 @@ function CrawlDetail({ crawl, onCancel }) {
         </div>
       )}
       {isExpired && <p style={{ fontSize: '12px', color: 'var(--apple-text-secondary)', fontStyle: 'italic', margin: 0 }}>Results expired — crawl data is no longer available on the Firecrawl instance.</p>}
+      {!isActive && !hasData && detail.status === 'cancelled' && (
+        <p style={{ fontSize: '12px', color: 'var(--apple-text-secondary)', fontStyle: 'italic', margin: 0 }}>Crawl was cancelled before any pages were collected.</p>
+      )}
       {hasData && (
         selectedPage !== null ? (
           <div>
