@@ -36,7 +36,7 @@ export function ScrapePage() {
   };
 
   const HistoryBadge = ({ success }) => (
-    <span className="apple-badge" style={{ fontSize: '10px', flexShrink: 0, background: success ? 'rgba(52,199,89,0.12)' : 'rgba(255,59,48,0.1)', color: success ? 'var(--apple-green)' : 'var(--apple-red)' }}>
+    <span className="apple-badge" style={{ fontSize: '10px', flexShrink: 0, background: success ? 'var(--apple-badge-success-bg)' : 'var(--apple-badge-error-bg)', color: success ? 'var(--apple-green)' : 'var(--apple-red)' }}>
       {success ? 'Success' : 'Failed'}
     </span>
   );

@@ -12,6 +12,7 @@ export default {
         'apple-red': 'var(--apple-red)',
         'apple-gray': 'var(--apple-gray)',
         'apple-separator': 'var(--apple-separator)',
+        'apple-surface': 'var(--apple-surface)',
       },
       borderRadius: {
         'apple': '12px',

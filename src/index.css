@@ -13,6 +13,9 @@
   --apple-shadow-card: rgba(0, 0, 0, 0.08);
   --apple-error-bg: rgba(255, 59, 48, 0.08);
   --apple-error-border: rgba(255, 59, 48, 0.25);
+  --apple-badge-success-bg: rgba(52, 199, 89, 0.12);
+  --apple-badge-error-bg: rgba(255, 59, 48, 0.1);
+  --apple-badge-info-bg: rgba(0, 113, 227, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -31,6 +34,9 @@
     --apple-shadow-card: rgba(0, 0, 0, 0.5);
     --apple-error-bg: rgba(255, 69, 58, 0.12);
     --apple-error-border: rgba(255, 69, 58, 0.35);
+    --apple-badge-success-bg: rgba(48, 209, 88, 0.16);
+    --apple-badge-error-bg: rgba(255, 69, 58, 0.15);
+    --apple-badge-info-bg: rgba(10, 132, 255, 0.15);
   }
 }
 
@@ -69,18 +75,22 @@
   }
   .apple-input:focus {
     border-color: var(--apple-blue);
-    box-shadow: 0 0 0 3px rgba(var(--apple-blue), 0.15);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--apple-blue) 20%, transparent);
   }
   .apple-input::placeholder {
     color: var(--apple-text-secondary);
   }
   .apple-badge {
     @apply inline-flex items-center px-3 py-1 rounded-full text-sm;
-    background: rgba(0, 113, 227, 0.1);
+    background: var(--apple-badge-info-bg);
     color: var(--apple-blue);
   }
   .apple-surface {
     background: var(--apple-surface);
+    transition: background 0.12s ease;
+  }
+  .apple-surface:hover {
+    background: color-mix(in srgb, var(--apple-surface) 80%, var(--apple-text) 20%);
   }
   .apple-error-banner {
     background: var(--apple-error-bg);

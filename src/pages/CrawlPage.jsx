@@ -5,11 +5,11 @@ import { useStore } from '../store';
 import { formatDistanceToNow } from 'date-fns';
 
 const STATUS_STYLE = {
-  completed: { background: 'rgba(52,199,89,0.12)',  color: 'var(--apple-green)' },
-  failed:    { background: 'rgba(255,59,48,0.1)',   color: 'var(--apple-red)' },
-  cancelled: { background: 'rgba(255,59,48,0.1)',   color: 'var(--apple-red)' },
-  pending:   { background: 'rgba(0,113,227,0.1)',   color: 'var(--apple-blue)' },
-  scraping:  { background: 'rgba(0,113,227,0.1)',   color: 'var(--apple-blue)' },
+  completed: { background: 'var(--apple-badge-success-bg)', color: 'var(--apple-green)' },
+  failed:    { background: 'var(--apple-badge-error-bg)',   color: 'var(--apple-red)' },
+  cancelled: { background: 'var(--apple-badge-error-bg)',   color: 'var(--apple-red)' },
+  pending:   { background: 'var(--apple-badge-info-bg)',    color: 'var(--apple-blue)' },
+  scraping:  { background: 'var(--apple-badge-info-bg)',    color: 'var(--apple-blue)' },
 };
 
 export function CrawlPage() {

@@ -15,9 +15,9 @@ export function ActivityChart({ data }) {
         <YAxis tick={{ fontSize: 11, fill: 'var(--apple-text-secondary)' }} axisLine={false} tickLine={false} allowDecimals={false} />
         <Tooltip contentStyle={{ background: 'var(--apple-card)', border: '1px solid var(--apple-separator)', borderRadius: '8px', fontSize: '12px', color: 'var(--apple-text)' }} cursor={{ fill: 'var(--apple-surface)' }} />
         <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--apple-text-secondary)' }} />
-        <Bar dataKey="scrapes" name="Scrapes" fill="#0071E3" radius={[3, 3, 0, 0]} stackId="a" />
-        <Bar dataKey="searches" name="Searches" fill="#34C759" radius={[3, 3, 0, 0]} stackId="a" />
-        <Bar dataKey="maps" name="Maps" fill="#8E8E93" radius={[3, 3, 0, 0]} stackId="a" />
+        <Bar dataKey="scrapes" name="Scrapes" fill="var(--apple-blue)" radius={[3, 3, 0, 0]} stackId="a" />
+        <Bar dataKey="searches" name="Searches" fill="var(--apple-green)" radius={[3, 3, 0, 0]} stackId="a" />
+        <Bar dataKey="maps" name="Maps" fill="var(--apple-gray)" radius={[3, 3, 0, 0]} stackId="a" />
       </BarChart>
     </ResponsiveContainer>
   );

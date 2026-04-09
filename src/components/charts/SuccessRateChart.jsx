@@ -8,7 +8,7 @@ export function SuccessRateChart({ stats }) {
   const chartData = total === 0
     ? [{ name: 'No data', value: 1 }]
     : [{ name: 'Success', value: success }, { name: 'Failed', value: failed }];
-  const colors = total === 0 ? ['#D2D2D7'] : ['#34C759', '#FF3B30'];
+  const colors = total === 0 ? ['var(--apple-separator)'] : ['var(--apple-green)', 'var(--apple-red)'];
 
   return (
     <div style={{ position: 'relative', height: '160px' }}>

@@ -74,7 +74,7 @@ export function MapPage() {
                       <p style={{ fontSize: '12px', color: 'var(--apple-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{item.url}</p>
                       <p style={{ fontSize: '10px', color: 'var(--apple-text-secondary)', marginTop: '2px' }}>{formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}</p>
                     </div>
-                    <span className="apple-badge" style={{ fontSize: '10px', flexShrink: 0, background: item.success ? 'rgba(52,199,89,0.12)' : 'rgba(255,59,48,0.1)', color: item.success ? 'var(--apple-green)' : 'var(--apple-red)' }}>{item.success ? 'Success' : 'Failed'}</span>
+                    <span className="apple-badge" style={{ fontSize: '10px', flexShrink: 0, background: item.success ? 'var(--apple-badge-success-bg)' : 'var(--apple-badge-error-bg)', color: item.success ? 'var(--apple-green)' : 'var(--apple-red)' }}>{item.success ? 'Success' : 'Failed'}</span>
                   </div>
                 ))}
               </div>

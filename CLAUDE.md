@@ -39,4 +39,8 @@ Apple Design System via Tailwind CSS. **All colors are CSS custom properties** d
 
 Reusable component classes (`.apple-card`, `.apple-button`, `.apple-input`, `.apple-badge`, `.apple-surface`, `.apple-error-banner`) are in `src/index.css` `@layer components`. Always use these.
 
-Do not add hardcoded hex colors or raw Tailwind color utilities. Exception: `Sidebar.jsx` uses fixed dark values (`#1C1C1E`, `#38383A`, `#98989D`) by intentional design — the sidebar is always dark regardless of system theme.
+Do not add hardcoded hex colors or raw Tailwind color utilities. Intentional exemptions (do not change these):
+- `Sidebar.jsx` — fixed dark values (`#1C1C1E`, `#38383A`, `#98989D`); the sidebar is always dark regardless of system theme.
+- `CrawlPage.jsx` and `ScrapePage.jsx` code preview `<pre>` blocks — `#1D1D1F`/`#F5F5F7`; always-dark for code readability.
+
+Badge colors use CSS variables (`--apple-badge-success-bg`, `--apple-badge-error-bg`, `--apple-badge-info-bg`) defined in `:root` with dark mode overrides — use these instead of inline rgba values.
