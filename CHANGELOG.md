@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.3.0...v1.3.1) (2026-04-09)
+
+
+### Bug Fixes
+
+* Apple HIG compliance + Docker restart loop ([592e202](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/592e2024051b444f04aa0ab287a1a6e10703edd6))
+
 # [1.3.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.2.5...v1.3.0) (2026-04-09)
 
 
