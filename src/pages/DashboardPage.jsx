@@ -12,8 +12,10 @@ export function DashboardPage() {
   const activeCrawls = (crawls || []).filter(c => ['pending', 'scraping'].includes(c.status));
 
   useEffect(() => {
-    axios.get('/api/stats/daily?days=7').then(r => { if (r.data.success) setDailyData(r.data.data); }).catch(() => {});
-    axios.get('/api/stats/domains?limit=10').then(r => { if (r.data.success) setDomainsData(r.data.data); }).catch(() => {});
+    let alive = true;
+    axios.get('/api/stats/daily?days=7').then(r => { if (alive && r.data.success) setDailyData(r.data.data); }).catch(() => {});
+    axios.get('/api/stats/domains?limit=10').then(r => { if (alive && r.data.success) setDomainsData(r.data.data); }).catch(() => {});
+    return () => { alive = false; };
   }, [stats]);
 
   const successRate = (() => {
@@ -105,8 +107,9 @@ function CrawlProgressRow({ crawl }) {
   }, [crawl.id]);
 
   const completed = detail?.completed || 0;
-  const total = detail?.total || crawl.max_pages || 1;
-  const pct = Math.min(100, Math.round((completed / total) * 100));
+  const rawTotal = detail?.total ?? crawl.max_pages ?? 0;
+  const pct = rawTotal > 0 ? Math.min(100, Math.round((completed / rawTotal) * 100)) : 0;
+  const total = rawTotal > 0 ? rawTotal : crawl.max_pages || '?';
   const domain = (() => { try { return new URL(crawl.url).hostname; } catch { return crawl.url; } })();
 
   return (
@@ -118,7 +121,7 @@ function CrawlProgressRow({ crawl }) {
         </div>
         <span style={{ fontSize: '11px', color: 'var(--apple-text-secondary)', whiteSpace: 'nowrap' }}>{completed}/{total}</span>
       </div>
-      <span className="apple-badge" style={{ fontSize: '10px', flexShrink: 0 }}>{crawl.status}</span>
+      <span className="apple-badge" style={{ fontSize: '10px', flexShrink: 0 }}>{detail?.status || crawl.status}</span>
     </div>
   );
 }
