@@ -219,6 +219,9 @@ export function Sidebar() {
       {/* Footer */}
       {!sidebarCollapsed && (
         <div style={{ padding: '8px 12px 12px', fontSize: '10px', color: '#636366', textAlign: 'center', lineHeight: 1.4 }}>
+          <div style={{ marginBottom: 4, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
+            Version: v{__APP_VERSION__}
+          </div>
           Built with ❤️ by <a href="https://tekgnosis.net" target="_blank" rel="noopener noreferrer" style={{ color: '#636366', textDecoration: 'none', borderBottom: '1px dotted #636366' }}>Tekgnosis</a>
         </div>
       )}
