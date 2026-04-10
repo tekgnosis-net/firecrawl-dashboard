@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.0.0...v2.0.1) (2026-04-10)
+
+
+### Bug Fixes
+
+* **docker:** cross-ping the proxy via PROXY_HOST env, not localhost ([9ad501d](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/9ad501d6e50ac8baddaf555734d88b01b4fdc614))
+
 # [2.0.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.5.1...v2.0.0) (2026-04-10)
 
 
