@@ -11,6 +11,10 @@ services:
       - FIRECRAWL_URL=http://10.0.20.66:3002
       - DASHBOARD_PORT=3001
       - DB_PATH=/app/data/dashboard.db
+      # Cross-ping to the proxy container via Docker DNS. In standalone
+      # dev this defaults to localhost; in compose the dashboard and
+      # proxy are separate containers, so we point at the proxy service.
+      - PROXY_HOST=proxy
     volumes:
       - ./data:/app/data
     restart: on-failure

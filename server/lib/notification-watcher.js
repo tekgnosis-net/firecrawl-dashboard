@@ -12,6 +12,8 @@ import {
   getErrorRateMinOps,
   getBullAuthKey,
   getProxyPort,
+  getProxyHost,
+  getProxyHealthUrl,
 } from './settings.js';
 
 /**
@@ -55,16 +57,20 @@ function wasRecentlyFired(db, eventType, dedupMinutes) {
 
 async function checkProxyUnreachable(db) {
   const port = getProxyPort(db);
+  const host = getProxyHost();
   try {
-    await axios.get(`http://localhost:${port}/healthz`, { timeout: 2000 });
+    // Use getProxyHealthUrl so the probe honors PROXY_HOST. In Docker
+    // the dashboard and proxy live in separate containers; `localhost`
+    // from the dashboard container would not reach the proxy container.
+    await axios.get(getProxyHealthUrl(db), { timeout: 2000 });
     return null; // proxy is alive
   } catch (err) {
     return {
       event_type: 'proxy_unreachable',
       severity: 'critical',
       title: 'Firecrawl proxy is down',
-      message: `The transparent Firecrawl proxy on localhost:${port} is unreachable. External clients submitting scrape/crawl/search requests through the proxy will receive connection errors until it is restarted.`,
-      details: { port, probe_error: err.message || String(err) },
+      message: `The transparent Firecrawl proxy on ${host}:${port} is unreachable. External clients submitting scrape/crawl/search requests through the proxy will receive connection errors until it is restarted.`,
+      details: { host, port, probe_error: err.message || String(err) },
       timestamp: new Date().toISOString(),
     };
   }

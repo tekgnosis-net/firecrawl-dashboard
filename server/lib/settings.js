@@ -75,6 +75,33 @@ export function getProxyPort(db) {
   return parseInt(getSettingWithEnv(db, 'proxy_port', 'PROXY_PORT', '3101'), 10);
 }
 
+/**
+ * Host the dashboard process should use to reach the proxy process for
+ * cross-pings (dashboard /healthz, notification-watcher checkProxyUnreachable).
+ *
+ * Defaults to `localhost` for standalone dev where both processes run on
+ * the same host. In Docker, the dashboard and proxy live in separate
+ * containers — each has its own `localhost` — so this MUST be overridden
+ * to the proxy container's service name via the `PROXY_HOST` env var
+ * (set in `docker-compose.yml` on the dashboard service).
+ *
+ * No settings-table key for this one: changing it requires a dashboard
+ * restart anyway (it affects the cross-ping URL at every call), and
+ * encoding it in the settings table would mean users who swap their
+ * docker-compose host DNS name would need to remember to also update
+ * the DB. The env var is closer to the deployment concern.
+ */
+export function getProxyHost() {
+  return process.env.PROXY_HOST || 'localhost';
+}
+
+/**
+ * Convenience: build the full proxy health URL used for cross-pinging.
+ */
+export function getProxyHealthUrl(db) {
+  return `http://${getProxyHost()}:${getProxyPort(db)}/healthz`;
+}
+
 export function getProxyMaxBodyBytes(db) {
   return parseInt(getSetting(db, 'proxy_max_body_bytes') || '52428800', 10);
 }

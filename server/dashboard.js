@@ -9,6 +9,7 @@ import {
   getAllSettings, setSetting,
   getFirecrawlUrl, getApiKey, getBullAuthKey,
   getDashboardPort, getPollingInterval,
+  getProxyHealthUrl,
 } from './lib/settings.js';
 import { internalGet } from './lib/firecrawl-client.js';
 import { createSnapshotPoller } from './lib/snapshot-poller.js';
@@ -60,8 +61,10 @@ app.use(express.json({ limit: '1mb' }));
 async function handleHealthz(req, res) {
   let proxyHealth = null;
   try {
-    const proxyPort = parseInt(db.prepare("SELECT value FROM settings WHERE key='proxy_port'").get()?.value || '3101', 10);
-    const r = await axios.get(`http://localhost:${proxyPort}/healthz`, { timeout: 2000 });
+    // Use getProxyHealthUrl() so the cross-ping honors PROXY_HOST. In
+    // standalone dev this is `localhost`; in Docker it's the proxy
+    // container's service DNS name (e.g. `proxy`), set via env.
+    const r = await axios.get(getProxyHealthUrl(db), { timeout: 2000 });
     proxyHealth = r.data;
   } catch (_) {
     proxyHealth = { status: 'unreachable' };
