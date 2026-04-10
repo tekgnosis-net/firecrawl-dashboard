@@ -1,6 +1,6 @@
 {
   "name": "firecrawl-dashboard",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "A beautiful monitoring dashboard for self-hosted Firecrawl instances with Apple Design System styling",
   "main": "server/dashboard.js",
   "type": "module",

@@ -1,3 +1,10 @@
+# [2.3.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.2.0...v2.3.0) (2026-04-10)
+
+
+### Features
+
+* **sidebar:** show current version in the footer above the attribution ([8ec94bd](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/8ec94bdad3fef4728877a9630d9759494b16d3ce))
+
 # [2.2.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.1.1...v2.2.0) (2026-04-10)
 
 
