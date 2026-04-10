@@ -53,8 +53,11 @@ app.use(express.json({ limit: '1mb' }));
 // Health and self-status
 // ============================================================
 
-app.get('/healthz', async (req, res) => {
-  // Local liveness probe (used by Docker healthcheck)
+// Local liveness probe shared by Docker healthcheck and the frontend's
+// ProcessStatusCard. Exposed at both `/healthz` (for Docker) and
+// `/api/healthz` (so the Vite dev proxy — which only forwards `/api/*`
+// to the backend — can reach it in dev mode without extra Vite config).
+async function handleHealthz(req, res) {
   let proxyHealth = null;
   try {
     const proxyPort = parseInt(db.prepare("SELECT value FROM settings WHERE key='proxy_port'").get()?.value || '3101', 10);
@@ -71,7 +74,9 @@ app.get('/healthz', async (req, res) => {
     uptimeSeconds: process.uptime(),
     proxy: proxyHealth,
   });
-});
+}
+app.get('/healthz', handleHealthz);
+app.get('/api/healthz', handleHealthz);
 
 /**
  * /api/health — combined Firecrawl liveness + Redis health probe.

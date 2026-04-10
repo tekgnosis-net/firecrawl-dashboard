@@ -14,8 +14,16 @@
  */
 
 function clampHours(hours, max = 720) {
-  const n = Math.max(1, parseInt(hours, 10) || 24);
-  return Math.min(n, max);
+  // Accept fractional hours (e.g. 5/60 for a 5-minute window used by
+  // checkHighErrorRate) and treat null/undefined/NaN as "use default 24".
+  // We avoid `parseInt` + `|| 24` because parseInt(0.083) === 0 which
+  // then triggers the fallback and silently turns a 5-minute window into
+  // a 24-hour window.
+  const parsed = hours == null || hours === '' ? 24 : Number(hours);
+  const n = Number.isFinite(parsed) && parsed > 0 ? parsed : 24;
+  // Clamp to a sensible minimum (1 minute = 1/60 hour) so "0" or negative
+  // inputs don't disable the filter entirely.
+  return Math.min(Math.max(1 / 60, n), max);
 }
 
 function clampLimit(limit, fallback = 10, max = 200) {

@@ -7,6 +7,7 @@ import { openDb, waitForSchemaVersion, CURRENT_SCHEMA_VERSION } from './lib/db.j
 import {
   getProxyPort, getFirecrawlUrl,
   getProxyWriteQueueFlushMs, getProxyWriteQueueMaxRows,
+  getProxyMaxBodyBytes,
 } from './lib/settings.js';
 import { createWriteQueue } from './lib/write-queue.js';
 import { createProxyMiddleware } from './lib/proxy-middleware.js';
@@ -39,11 +40,12 @@ async function main() {
   // continue to work. Same as the upstream's Access-Control-Allow-Origin: *.
   app.use(cors());
 
-  // JSON body parser with 50 MB limit — scrape requests can include inline
-  // HTML or large POST bodies. Raw path-through of the parsed body is used
-  // by the middleware to extract log fields; the raw buffer is reserialized
-  // before forwarding (axios does the serialization).
-  app.use(express.json({ limit: '50mb' }));
+  // JSON body parser. Derive the limit from `proxy_max_body_bytes` so the
+  // inbound parser and the outbound forwarding cap agree on the same value.
+  // Read once at startup; changing this setting requires a proxy restart
+  // (documented in the Settings UI).
+  const maxBodyBytes = getProxyMaxBodyBytes(db);
+  app.use(express.json({ limit: maxBodyBytes }));
 
   // Local health probe — not proxied. Used by Docker healthcheck and by
   // the dashboard process to surface proxy status in the UI.

@@ -1,6 +1,13 @@
 // src/store.js
 import { create } from 'zustand';
 import axios from 'axios';
+// Import the shared proxy-URL helpers from lib/proxyUrl.js. This is a
+// circular import with that module (it imports useStore from here), but
+// ESM handles the cycle correctly because neither module accesses the
+// imported binding at module-load time — both `getProxyBaseUrl()` and
+// `useStore.getState()` are only invoked from within function bodies,
+// which execute after both modules have finished loading.
+import { getProxyBaseUrl, INTERNAL_UI_HEADERS } from './lib/proxyUrl.js';
 
 const API_BASE = '/api';
 const SIDEBAR_KEY = 'firecrawl_sidebar_collapsed';
@@ -16,18 +23,6 @@ function applyTheme(theme) {
 
 // Apply saved theme immediately on load
 applyTheme(localStorage.getItem(THEME_KEY) || 'auto');
-
-// Build the proxy base URL for submission actions. Imported lazily via
-// function call so it reads the current settings from the store.
-function proxyBaseUrl(settings) {
-  const proxyPort = settings?.proxyPort || 3101;
-  if (typeof window === 'undefined') return `http://localhost:${proxyPort}`;
-  return `${window.location.protocol}//${window.location.hostname}:${proxyPort}`;
-}
-
-const INTERNAL_UI_HEADERS = {
-  'User-Agent': 'firecrawl-dashboard-internal/1.0',
-};
 
 export const useStore = create((set, get) => ({
   // --- UI state (persisted to localStorage) ---
@@ -221,9 +216,13 @@ export const useStore = create((set, get) => ({
   // ============================================================
 
   fetchHealth: async () => {
+    // Use /api/healthz (alias of /healthz exposed by the dashboard backend)
+    // so the Vite dev proxy — which only forwards /api/* to :3001 — can
+    // reach it in dev without extra config. Production is unaffected
+    // since the backend serves both paths identically.
     const [apiHealthRes, processHealthRes] = await Promise.allSettled([
       axios.get(`${API_BASE}/health`),
-      axios.get('/healthz'),
+      axios.get(`${API_BASE}/healthz`),
     ]);
     if (apiHealthRes.status === 'fulfilled') {
       set({ health: apiHealthRes.value.data });
@@ -363,7 +362,7 @@ export const useStore = create((set, get) => ({
     const allIds = Array.from(new Set([...activeIds, ...sessionIds])).filter(Boolean);
     if (allIds.length === 0) return;
 
-    const base = proxyBaseUrl(state.settings);
+    const base = getProxyBaseUrl();
     const results = await Promise.allSettled(
       allIds.map(id => axios.get(`${base}/v1/crawl/${id}`, { headers: INTERNAL_UI_HEADERS }))
     );
@@ -388,7 +387,7 @@ export const useStore = create((set, get) => ({
   submitScrape: async (url, formats = ['markdown']) => {
     set({ loading: true, error: null });
     try {
-      const base = proxyBaseUrl(get().settings);
+      const base = getProxyBaseUrl();
       const r = await axios.post(`${base}/v1/scrape`, { url, formats }, { headers: INTERNAL_UI_HEADERS });
       get().fetchProxyStats();
       return r.data;
@@ -403,7 +402,7 @@ export const useStore = create((set, get) => ({
   submitSearch: async (query, limit = 5) => {
     set({ loading: true, error: null });
     try {
-      const base = proxyBaseUrl(get().settings);
+      const base = getProxyBaseUrl();
       const r = await axios.post(`${base}/v2/search`, { query, limit }, { headers: INTERNAL_UI_HEADERS });
       get().fetchProxyStats();
       return r.data;
@@ -418,7 +417,7 @@ export const useStore = create((set, get) => ({
   submitMap: async (url, options = {}) => {
     set({ loading: true, error: null });
     try {
-      const base = proxyBaseUrl(get().settings);
+      const base = getProxyBaseUrl();
       const body = { url, ...options };
       const r = await axios.post(`${base}/v2/map`, body, { headers: INTERNAL_UI_HEADERS });
       get().fetchProxyStats();
@@ -434,7 +433,7 @@ export const useStore = create((set, get) => ({
   submitCrawl: async (url, options = {}) => {
     set({ loading: true, error: null });
     try {
-      const base = proxyBaseUrl(get().settings);
+      const base = getProxyBaseUrl();
       const r = await axios.post(`${base}/v1/crawl`, { url, ...options }, { headers: INTERNAL_UI_HEADERS });
       const id = r.data?.id;
       if (id) {
@@ -454,7 +453,7 @@ export const useStore = create((set, get) => ({
   cancelCrawl: async (id) => {
     set({ loading: true, error: null });
     try {
-      const base = proxyBaseUrl(get().settings);
+      const base = getProxyBaseUrl();
       await axios.delete(`${base}/v1/crawl/${id}`, { headers: INTERNAL_UI_HEADERS });
       get().fetchServerMetrics();
       get().fetchActiveCrawlsDetail();
