@@ -31,26 +31,45 @@ import { OperationDetailDrawer } from '../components/reports/OperationDetailDraw
 // the store and toolbar components understand. String-typed query params
 // are coerced where the backend expects numbers (hours, limit, offset).
 //
-// Non-numeric or empty values for numeric keys are dropped rather than
-// propagated as NaN — otherwise the filter bag would round-trip to the
-// URL as `hours=NaN`, polluting shareable links and producing garbage
-// backend queries.
-function coerceNumber(raw, key, out) {
+// Non-numeric, empty, or non-positive values for numeric keys are
+// dropped rather than propagated — otherwise the filter bag would
+// round-trip to the URL as `hours=NaN` or `hours=0`, polluting
+// shareable links, producing controlled-component mismatches in the
+// time-window <select>, and triggering the backend's clampHours
+// fallback so the UI and data diverge.
+function coerceNumber(raw, key, out, { min = null, integer = false } = {}) {
   if (raw[key] === undefined || raw[key] === '') {
     delete out[key];
     return;
   }
   const n = Number(raw[key]);
-  if (Number.isFinite(n)) out[key] = n;
-  else delete out[key];
+  if (!Number.isFinite(n)) {
+    delete out[key];
+    return;
+  }
+  if (integer && !Number.isInteger(n)) {
+    delete out[key];
+    return;
+  }
+  if (min !== null && n < min) {
+    delete out[key];
+    return;
+  }
+  out[key] = n;
 }
 
 function parseFiltersFromUrl(searchParams) {
   const raw = Object.fromEntries(searchParams.entries());
   const filters = { ...raw };
-  coerceNumber(raw, 'hours', filters);
-  coerceNumber(raw, 'limit', filters);
-  coerceNumber(raw, 'offset', filters);
+  // `hours` must be a positive finite number — 0 and negatives would
+  // produce a controlled-component mismatch in the time-window select
+  // (which has no `0` option) and the backend clampHours would
+  // silently fall back to a different default, making the UI and the
+  // data diverge. Drop any invalid value and fall through to the
+  // default-24 below.
+  coerceNumber(raw, 'hours', filters, { min: 0.01 });
+  coerceNumber(raw, 'limit', filters, { min: 1, integer: true });
+  coerceNumber(raw, 'offset', filters, { min: 0, integer: true });
   // Default: last 24h window. Applied only if no explicit hours AND
   // no from/to range was provided.
   if (filters.hours === undefined && !filters.from && !filters.to) {
@@ -93,14 +112,23 @@ export function ReportsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // Handle URL-driven detail drawer: if ?detail=<id> is present, load it.
+  // Handle URL-driven detail drawer: if ?detail=<id> is present AND
+  // parses as a finite integer, load it. A hand-edited URL with a
+  // non-numeric value (e.g. `?detail=abc`) would otherwise fire a
+  // request for `/api/stats/proxy/operation/NaN`, which is wasted
+  // network + log noise.
   const detailId = searchParams.get('detail');
   useEffect(() => {
-    if (detailId) {
-      fetchOperationDetail(Number(detailId));
-    } else {
+    if (!detailId) {
       closeOperationDetail();
+      return;
     }
+    const parsed = Number(detailId);
+    if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 1) {
+      closeOperationDetail();
+      return;
+    }
+    fetchOperationDetail(parsed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detailId]);
 

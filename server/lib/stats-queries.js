@@ -32,25 +32,21 @@ function clampLimit(limit, fallback = 10, max = 200) {
 }
 
 /**
- * Normalize an inbound ISO-8601 timestamp string to the exact same
- * shape used by `new Date().toISOString()` — `YYYY-MM-DDTHH:MM:SS.fffZ`.
- * Needed because stored timestamps always carry milliseconds but URL
- * query params (from drill-down links, humans, curl) often drop them,
- * and lexicographic comparison without normalization silently skips
- * the first second of the range window. Input that doesn't match the
- * recognized shape is returned unchanged.
+ * Normalize an inbound ISO-8601 timestamp string to the canonical
+ * UTC Z-shape used by `new Date().toISOString()` —
+ * `YYYY-MM-DDTHH:MM:SS.fffZ`. Needed because (a) URL query params
+ * often drop milliseconds and (b) some callers send non-UTC offsets
+ * like `+02:00`, neither of which compare lexicographically against
+ * stored Z-form timestamps. Round-tripping through `new Date(s)`
+ * converts any valid form to the canonical UTC shape; unparseable
+ * input is returned unchanged so upstream SQL rejects it visibly.
  */
 function normalizeIsoTimestamp(s) {
   if (s == null) return s;
   const str = String(s);
-  // Match YYYY-MM-DDTHH:MM:SS, optional .fff, optional Z / ±HH:MM
-  const m = str.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?(Z|[+\-]\d{2}:?\d{2})?$/);
-  if (!m) return str;
-  const base = m[1];
-  // Pad fractional seconds to exactly 3 digits; default to .000 if absent.
-  const frac = (m[2] || '000').padEnd(3, '0').slice(0, 3);
-  const tz = m[3] || 'Z';
-  return `${base}.${frac}${tz}`;
+  const d = new Date(str);
+  if (Number.isNaN(d.getTime())) return str;
+  return d.toISOString();
 }
 
 /**
