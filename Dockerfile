@@ -15,8 +15,13 @@ COPY server ./server
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh && mkdir -p /app/data && chown -R node:node /app/data
 ENV NODE_ENV=production
-EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+# 3001 = dashboard UI + /api/*, 3101 = transparent Firecrawl proxy
+# Single image serves both; docker-compose overrides `command` per service.
+EXPOSE 3001 3101
+# The default CMD starts the dashboard. The docker-compose `proxy` service
+# overrides this to start the proxy instead. The healthcheck probes the
+# dashboard's /healthz; docker-compose defines its own healthcheck per service.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/healthz || exit 1
 ENTRYPOINT ["./docker-entrypoint.sh"]
-CMD ["node", "server/index.js"]
+CMD ["node", "server/dashboard.js"]

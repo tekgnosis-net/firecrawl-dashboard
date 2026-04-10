@@ -1,18 +1,49 @@
 services:
-  firecrawl-dashboard:
+  dashboard:
     image: ghcr.io/tekgnosis-net/firecrawl-dashboard:latest
     pull_policy: always
     container_name: firecrawl-dashboard
+    command: ["node", "server/dashboard.js"]
     ports:
-      - "3003:3000"
+      - "3001:3001"
     environment:
+      - NODE_ENV=production
       - FIRECRAWL_URL=http://10.0.20.66:3002
+      - DASHBOARD_PORT=3001
+      - DB_PATH=/app/data/dashboard.db
     volumes:
       - ./data:/app/data
-    restart: unless-stopped
+    restart: on-failure
+    mem_limit: 512m
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s
+
+  proxy:
+    image: ghcr.io/tekgnosis-net/firecrawl-dashboard:latest
+    pull_policy: always
+    container_name: firecrawl-proxy
+    command: ["node", "server/proxy.js"]
+    ports:
+      - "3101:3101"
+    environment:
+      - NODE_ENV=production
+      - FIRECRAWL_URL=http://10.0.20.66:3002
+      - PROXY_PORT=3101
+      - DB_PATH=/app/data/dashboard.db
+    volumes:
+      - ./data:/app/data
+    restart: always
+    mem_limit: 2g
+    depends_on:
+      dashboard:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3101/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

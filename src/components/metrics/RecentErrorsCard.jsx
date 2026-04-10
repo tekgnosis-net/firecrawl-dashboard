@@ -1,0 +1,58 @@
+// src/components/metrics/RecentErrorsCard.jsx
+import { useStore } from '../../store';
+import { timeAgo } from '../../lib/format';
+
+function truncate(s, n) {
+  if (!s) return '';
+  return s.length > n ? s.substring(0, n - 1) + '\u2026' : s;
+}
+
+export function RecentErrorsCard() {
+  const errors = useStore(s => s.proxyStats.recentErrors) || [];
+
+  return (
+    <div className="apple-card">
+      <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Recent errors</h3>
+      <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginBottom: 16 }}>
+        failed proxy operations · last 24h
+      </div>
+      {errors.length === 0 ? (
+        <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--apple-text-secondary)', fontSize: 13 }}>
+          No errors \u2014 everything is working.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
+          {errors.slice(0, 20).map(e => (
+            <div
+              key={e.id}
+              style={{
+                padding: '8px 12px',
+                background: 'var(--apple-error-bg)',
+                border: '1px solid var(--apple-error-border)',
+                borderRadius: 8,
+                fontSize: 12,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                <span style={{ fontWeight: 600, color: 'var(--apple-red)' }}>
+                  {e.operation_type} {e.response_status || 'FAIL'}
+                </span>
+                <span style={{ fontSize: 10, color: 'var(--apple-text-secondary)' }}>{timeAgo(e.timestamp)}</span>
+              </div>
+              {e.target_url && (
+                <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', fontFamily: 'ui-monospace, Menlo, monospace', marginBottom: 2, wordBreak: 'break-all' }}>
+                  {truncate(e.target_url, 80)}
+                </div>
+              )}
+              {e.error_message && (
+                <div style={{ fontSize: 11, color: 'var(--apple-text)', wordBreak: 'break-word' }}>
+                  {truncate(e.error_message, 200)}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
