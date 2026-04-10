@@ -57,6 +57,19 @@ function DebouncedText({ value, onChange, placeholder, delay = 600, style }) {
   // Keep the local value in sync if the parent forcibly updates (e.g. Clear button)
   useEffect(() => { setLocal(value ?? ''); }, [value]);
 
+  // Cancel any pending debounced onChange on unmount. Without this, a
+  // user typing in a filter input and then navigating away would
+  // still fire a setState after the component is gone, potentially
+  // mutating URL state on an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, []);
+
   function handleChange(e) {
     const next = e.target.value;
     setLocal(next);

@@ -8,6 +8,24 @@
 import { useEffect, useRef } from 'react';
 import { formatDuration, formatBytes, timeAgo } from '../../lib/format';
 
+// Shared style for the debug <pre> blocks (request/response bodies).
+// Uses theme tokens instead of hardcoded hex so the block flips with
+// light/dark mode. Module-scope so both blocks share one object.
+function codeBlockStyle(maxHeight) {
+  return {
+    background: 'var(--apple-surface)',
+    color: 'var(--apple-text)',
+    border: '1px solid var(--apple-separator)',
+    padding: 10,
+    borderRadius: 6,
+    fontFamily: 'ui-monospace, Menlo, monospace',
+    fontSize: 10,
+    overflow: 'auto',
+    maxHeight,
+    margin: 0,
+  };
+}
+
 function Field({ label, value, mono }) {
   return (
     <div style={{ display: 'flex', gap: 12, padding: '6px 0', fontSize: 12 }}>
@@ -272,38 +290,22 @@ export function OperationDetailDrawer({ detail, onClose, onSelectRow }) {
           </Section>
         )}
 
-        {/* Request body (if debug logged) */}
+        {/* Debug body blocks — use theme tokens so light/dark modes
+            stay consistent. (CrawlPage/ScrapePage still use hardcoded
+            code-block colors by convention, but this drawer is new
+            code so it follows the normal token rule.) */}
         {detail.request_body && (
           <Section title="Request body (debug)">
-            <pre style={{
-              background: '#1D1D1F',
-              color: '#F5F5F7',
-              padding: 10,
-              borderRadius: 6,
-              fontSize: 10,
-              overflow: 'auto',
-              maxHeight: 200,
-              margin: 0,
-            }}>
+            <pre style={codeBlockStyle(200)}>
               {detail.request_body.substring(0, 10000)}
               {detail.request_body.length > 10000 && '\n... (truncated)'}
             </pre>
           </Section>
         )}
 
-        {/* Response body (if debug logged) */}
         {detail.response_body && (
           <Section title="Response body (debug)">
-            <pre style={{
-              background: '#1D1D1F',
-              color: '#F5F5F7',
-              padding: 10,
-              borderRadius: 6,
-              fontSize: 10,
-              overflow: 'auto',
-              maxHeight: 300,
-              margin: 0,
-            }}>
+            <pre style={codeBlockStyle(300)}>
               {detail.response_body.substring(0, 10000)}
               {detail.response_body.length > 10000 && '\n... (truncated)'}
             </pre>

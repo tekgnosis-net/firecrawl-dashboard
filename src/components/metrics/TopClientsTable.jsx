@@ -36,31 +36,18 @@ export function TopClientsTable({ clients: clientsProp, onRowClick, subtitle }) 
                 <th style={{ ...thStyle, textAlign: 'right' }}>Failed</th>
                 <th style={{ ...thStyle, textAlign: 'right' }}>Credits</th>
                 <th style={thStyle}>Last seen</th>
+                {clickable && <th style={{ ...thStyle, width: 28 }} aria-label="Actions" />}
               </tr>
             </thead>
             <tbody>
-              {clients.map((c, i) => {
-                // Keyboard activation for the clickable row. <tr> isn't
-                // a semantic button but accepts tabIndex={0} as a focus
-                // stop in all modern browsers, which is the minimal
-                // accessible path that doesn't require restructuring
-                // the table into nested focusable cells.
-                const handleKeyDown = clickable
-                  ? (e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onRowClick(c);
-                      }
-                    }
-                  : undefined;
-                return (
+              {clients.map((c, i) => (
+                // Mouse users click anywhere on the row via <tr onClick>.
+                // Keyboard/screen-reader users tab into the dedicated
+                // action <button> in the last cell. The <tr> keeps its
+                // native `row` role, so table semantics are preserved.
                 <tr
                   key={`${c.client_ip}-${c.client_ua}-${i}`}
                   onClick={clickable ? () => onRowClick(c) : undefined}
-                  onKeyDown={handleKeyDown}
-                  role={clickable ? 'button' : undefined}
-                  tabIndex={clickable ? 0 : undefined}
-                  aria-label={clickable ? `Drill down by client ${c.client_ip || 'unknown'}` : undefined}
                   style={{
                     borderBottom: '1px solid var(--apple-separator)',
                     cursor: clickable ? 'pointer' : 'default',
@@ -82,9 +69,29 @@ export function TopClientsTable({ clients: clientsProp, onRowClick, subtitle }) 
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>{formatNumber(c.creditsUsed)}</td>
                   <td style={{ ...tdStyle, color: 'var(--apple-text-secondary)', fontSize: 11 }}>{timeAgo(c.lastSeenAt)}</td>
+                  {clickable && (
+                    <td style={{ ...tdStyle, textAlign: 'right', verticalAlign: 'middle' }}>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onRowClick(c); }}
+                        aria-label={`Drill down by client ${c.client_ip || 'unknown'}`}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          padding: '2px 6px',
+                          cursor: 'pointer',
+                          color: 'var(--apple-text-secondary)',
+                          fontSize: 14,
+                          lineHeight: 1,
+                        }}
+                        title="Open in Reports"
+                      >
+                        {'\u2192'}
+                      </button>
+                    </td>
+                  )}
                 </tr>
-                );
-              })}
+              ))}
             </tbody>
           </table>
         </div>

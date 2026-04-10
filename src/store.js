@@ -636,6 +636,17 @@ export const useStore = create((set, get) => ({
       }
       set(state => ({ reports: { ...state.reports, detail } }));
     } catch (err) {
+      // A 404 (or 400) from the operation endpoint almost always means
+      // a stale or hand-edited `?detail=<id>` URL — the row was pruned
+      // by housekeeping, or the user typed an id that doesn't exist.
+      // Treat that as "clear the drawer" and don't surface a global
+      // error banner for it. Other errors (500, network) still flow
+      // through as fetchError since those represent real problems.
+      const status = err?.response?.status;
+      if (status === 404 || status === 400) {
+        set(state => ({ reports: { ...state.reports, detail: null } }));
+        return;
+      }
       set(state => ({
         reports: { ...state.reports, detail: null, fetchError: err.message },
       }));

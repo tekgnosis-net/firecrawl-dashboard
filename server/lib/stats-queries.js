@@ -32,6 +32,28 @@ function clampLimit(limit, fallback = 10, max = 200) {
 }
 
 /**
+ * Normalize an inbound ISO-8601 timestamp string to the exact same
+ * shape used by `new Date().toISOString()` — `YYYY-MM-DDTHH:MM:SS.fffZ`.
+ * Needed because stored timestamps always carry milliseconds but URL
+ * query params (from drill-down links, humans, curl) often drop them,
+ * and lexicographic comparison without normalization silently skips
+ * the first second of the range window. Input that doesn't match the
+ * recognized shape is returned unchanged.
+ */
+function normalizeIsoTimestamp(s) {
+  if (s == null) return s;
+  const str = String(s);
+  // Match YYYY-MM-DDTHH:MM:SS, optional .fff, optional Z / ±HH:MM
+  const m = str.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?(Z|[+\-]\d{2}:?\d{2})?$/);
+  if (!m) return str;
+  const base = m[1];
+  // Pad fractional seconds to exactly 3 digits; default to .000 if absent.
+  const frac = (m[2] || '000').padEnd(3, '0').slice(0, 3);
+  const tz = m[3] || 'Z';
+  return `${base}.${frac}${tz}`;
+}
+
+/**
  * Build a SQL WHERE clause fragment from a filter bag.
  *
  * Returns { sql, params } where `sql` is a string that always begins
@@ -76,7 +98,16 @@ function buildFilterClause(filters = {}) {
   // (no function applied to the column side).
   if (filters.from && filters.to) {
     conditions.push('timestamp >= ? AND timestamp < ?');
-    params.push(filters.from, filters.to);
+    // `from`/`to` come in via URL query params, which routinely drop
+    // milliseconds (e.g. `2026-04-10T12:00:00Z` from Dashboard drill-
+    // downs). Stored timestamps always have millis because they were
+    // written via new Date().toISOString(). Lexicographic comparison
+    // of `...T12:00:00Z` against `...T12:00:00.500Z` puts the
+    // no-millis form AFTER the with-millis form (`Z` > `.`), so a
+    // naive `from` would drop the first second of the intended
+    // window. Normalize both endpoints to the full `.fffZ` shape
+    // before binding so the string comparison lines up exactly.
+    params.push(normalizeIsoTimestamp(filters.from), normalizeIsoTimestamp(filters.to));
   } else {
     const hours = clampHours(filters.hours, 720);
     conditions.push("timestamp >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-' || ? || ' hours')");
@@ -109,13 +140,19 @@ function buildFilterClause(filters = {}) {
     params.push(filters.firecrawl_id);
   }
 
-  // HTTP status code filtering — either a shorthand class or explicit bounds
+  // HTTP status code filtering — either a shorthand class or explicit bounds.
+  // `transport_error` is a synthetic class for rows where no HTTP response
+  // was received at all (proxy recorded 0 into response_status). The
+  // FilterToolbar exposes it as an option, so it needs an explicit
+  // clause here — otherwise selecting it would silently be a no-op.
   if (filters.status_class) {
     const classMap = { '2xx': [200, 300], '3xx': [300, 400], '4xx': [400, 500], '5xx': [500, 600] };
-    const range = classMap[String(filters.status_class)];
-    if (range) {
+    const cls = String(filters.status_class);
+    if (cls === 'transport_error') {
+      conditions.push('response_status = 0');
+    } else if (classMap[cls]) {
       conditions.push('response_status >= ? AND response_status < ?');
-      params.push(range[0], range[1]);
+      params.push(classMap[cls][0], classMap[cls][1]);
     }
   }
   // status_min / status_max are only applied when the parsed value is

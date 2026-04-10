@@ -103,25 +103,19 @@ export function OperationsTable({ data, loading, onRowClick, onPageChange }) {
                 <th style={{ ...thStyle, textAlign: 'right' }}>Status</th>
                 <th style={{ ...thStyle, textAlign: 'right' }}>Duration</th>
                 <th style={{ ...thStyle, textAlign: 'right' }}>Credits</th>
+                <th style={{ ...thStyle, width: 28 }} aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
               {rows.map(row => (
+                // Mouse users click anywhere on the row via <tr onClick>.
+                // Keyboard / screen-reader users tab to the explicit
+                // action <button> in the last cell. This preserves the
+                // native <tr> row semantics instead of overriding them
+                // with an incompatible role="button".
                 <tr
                   key={row.id}
                   onClick={() => onRowClick(row.id)}
-                  onKeyDown={(e) => {
-                    // Keyboard activation: Enter or Space opens the
-                    // detail drawer, matching the same pattern used
-                    // by the Dashboard drill-down widgets.
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onRowClick(row.id);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Open detail for ${row.operation_type} operation #${row.id}`}
                   style={{
                     borderBottom: '1px solid var(--apple-separator)',
                     cursor: 'pointer',
@@ -153,6 +147,25 @@ export function OperationsTable({ data, loading, onRowClick, onPageChange }) {
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--apple-text-secondary)' }}>
                     {row.credits_used ?? '\u2014'}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'right', verticalAlign: 'middle' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onRowClick(row.id); }}
+                      aria-label={`Open detail for ${row.operation_type} operation #${row.id}`}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: '2px 6px',
+                        cursor: 'pointer',
+                        color: 'var(--apple-text-secondary)',
+                        fontSize: 14,
+                        lineHeight: 1,
+                      }}
+                      title="Open detail"
+                    >
+                      {'\u2192'}
+                    </button>
                   </td>
                 </tr>
               ))}
