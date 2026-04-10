@@ -2,7 +2,7 @@
 
 A self-hosted monitoring dashboard **and transparent HTTP proxy** for [Firecrawl](https://github.com/mendableai/firecrawl) instances. Point your Firecrawl clients (SDK, curl, other tools) at the dashboard's proxy URL and every request gets transparently forwarded to the real Firecrawl server while being observed and recorded. The dashboard then surfaces rich real-time metrics — operation counts by type, per-client traffic, credit usage over time, top domains, recent errors, live queue depth, Redis health — all derived from the actual traffic it sees, not from guesswork. Crafted with an Apple-inspired design system featuring semantic color tokens, adaptive dark mode, frosted-glass sidebar, and smooth transitions throughout.
 
-![Dashboard](./screenshots/dashboard.png?v=3)
+![Dashboard](./screenshots/dashboard.png?v=4)
 
 ## Design
 
@@ -32,13 +32,19 @@ The UI follows Apple Human Interface Guidelines with purposeful restraint:
 
 ## Screenshots
 
-| Dashboard | Crawl | Scrape |
-|:-:|:-:|:-:|
-| ![Dashboard](./screenshots/dashboard.png?v=3) | ![Crawl](./screenshots/crawl.png?v=3) | ![Scrape](./screenshots/scrape.png?v=3) |
+The headline feature in v2.1.0 is the **Reports** page — a URL-driven deep-dive analytics view with six server-aggregated chart tiles (request volume, log-scaled duration histogram with p50/p90/p95/p99 strip, status code breakdown, day-of-week × hour-of-day traffic heatmap, top clients, top domains), a paginated operations table, and a slide-in detail drawer showing all 24 fields of any operation. Every Dashboard widget is a drill-down entry point into Reports with the matching filter pre-applied.
 
-| Search | Map | Settings |
+| Dashboard | Reports | Reports — detail drawer |
 |:-:|:-:|:-:|
-| ![Search](./screenshots/search.png?v=3) | ![Map](./screenshots/map.png?v=3) | ![Settings](./screenshots/settings.png?v=3) |
+| ![Dashboard](./screenshots/dashboard.png?v=4) | ![Reports](./screenshots/reports.png?v=4) | ![Reports Detail](./screenshots/reports-detail.png?v=4) |
+
+| Crawl | Scrape | Search |
+|:-:|:-:|:-:|
+| ![Crawl](./screenshots/crawl.png?v=4) | ![Scrape](./screenshots/scrape.png?v=4) | ![Search](./screenshots/search.png?v=4) |
+
+| Map | Settings |
+|:-:|:-:|
+| ![Map](./screenshots/map.png?v=4) | ![Settings](./screenshots/settings.png?v=4) |
 
 ## Quick Start
 
