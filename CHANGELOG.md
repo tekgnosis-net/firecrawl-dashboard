@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.1.1...v2.2.0) (2026-04-10)
+
+
+### Features
+
+* **settings:** surface auto-save feedback as a floating toast ([5537e55](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/5537e55ae59b48956d87703fb73c83d4a144efb0))
+
 ## [2.1.1](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.1.0...v2.1.1) (2026-04-10)
 
 
