@@ -17,6 +17,8 @@ import { runHousekeeping, startHousekeepingSchedule } from './lib/housekeeping.j
 import {
   getOverview, getTimeline, getClients, getDomains,
   getErrors, getCredits, getRecent, getSnapshots,
+  getDistribution, getStatusCodes, getHeatmap,
+  getOperationDetail, getCrawlLifecycle, exportRowsAsCsv,
 } from './lib/stats-queries.js';
 import { createWatcher } from './lib/notification-watcher.js';
 import { dispatch as dispatchNotification } from './lib/notifier.js';
@@ -317,14 +319,62 @@ function wrapStats(handler) {
   };
 }
 
-app.get('/api/stats/proxy/overview', wrapStats((db, q) => getOverview(db, { hours: q.hours })));
-app.get('/api/stats/proxy/timeline', wrapStats((db, q) => getTimeline(db, { hours: q.hours, bucket: q.bucket })));
-app.get('/api/stats/proxy/clients', wrapStats((db, q) => getClients(db, { hours: q.hours, limit: q.limit })));
-app.get('/api/stats/proxy/domains', wrapStats((db, q) => getDomains(db, { hours: q.hours, limit: q.limit })));
-app.get('/api/stats/proxy/errors', wrapStats((db, q) => getErrors(db, { hours: q.hours, limit: q.limit })));
-app.get('/api/stats/proxy/credits', wrapStats((db, q) => getCredits(db, { hours: q.hours, bucket: q.bucket })));
-app.get('/api/stats/proxy/recent', wrapStats((db, q) => getRecent(db, { limit: q.limit, type: q.type, client: q.client })));
-app.get('/api/stats/snapshots', wrapStats((db, q) => getSnapshots(db, { hours: q.hours })));
+// Existing stats endpoints now pass the full query object as the filter bag.
+// buildFilterClause inside each query function extracts only the keys it
+// understands, so unrelated query params (like `limit`, `bucket`, `offset`)
+// are still handled separately by the query functions.
+app.get('/api/stats/proxy/overview',    wrapStats((db, q) => getOverview(db, q)));
+app.get('/api/stats/proxy/timeline',    wrapStats((db, q) => getTimeline(db, q)));
+app.get('/api/stats/proxy/clients',     wrapStats((db, q) => getClients(db, q)));
+app.get('/api/stats/proxy/domains',     wrapStats((db, q) => getDomains(db, q)));
+app.get('/api/stats/proxy/errors',      wrapStats((db, q) => getErrors(db, q)));
+app.get('/api/stats/proxy/credits',     wrapStats((db, q) => getCredits(db, q)));
+app.get('/api/stats/proxy/recent',      wrapStats((db, q) => getRecent(db, q)));
+app.get('/api/stats/snapshots',         wrapStats((db, q) => getSnapshots(db, q)));
+
+// New Reports-page endpoints
+app.get('/api/stats/proxy/distribution', wrapStats((db, q) => getDistribution(db, q)));
+app.get('/api/stats/proxy/status-codes', wrapStats((db, q) => getStatusCodes(db, q)));
+app.get('/api/stats/proxy/heatmap',      wrapStats((db, q) => getHeatmap(db, q)));
+
+// Single-operation detail — used by the detail drawer
+app.get('/api/stats/proxy/operation/:id', (req, res) => {
+  try {
+    const row = getOperationDetail(db, parseInt(req.params.id, 10));
+    if (!row) return res.status(404).json({ success: false, error: 'operation not found' });
+    res.json({ success: true, data: row });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Crawl lifecycle — all rows sharing a firecrawl_id
+app.get('/api/stats/proxy/crawl/:firecrawl_id', (req, res) => {
+  try {
+    const rows = getCrawlLifecycle(db, req.params.firecrawl_id);
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// CSV export — streamed, never loads more than one row at a time
+app.get('/api/stats/proxy/export.csv', (req, res) => {
+  try {
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="firecrawl-proxy-export.csv"');
+    const written = exportRowsAsCsv(db, req.query, res, 10000);
+    res.end();
+    console.log(`[reports] CSV export wrote ${written} rows`);
+  } catch (error) {
+    // If headers haven't been sent yet, return JSON error
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, error: error.message });
+    } else {
+      res.end();
+    }
+  }
+});
 
 // ============================================================
 // Maintenance

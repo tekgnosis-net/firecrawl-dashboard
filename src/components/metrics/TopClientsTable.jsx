@@ -7,14 +7,20 @@ function truncate(s, n) {
   return s.length > n ? s.substring(0, n - 1) + '\u2026' : s;
 }
 
-export function TopClientsTable() {
-  const clients = useStore(s => s.proxyStats.topClients) || [];
+// Accepts optional `clients` prop (prop-fed on Reports page) and an
+// optional `onRowClick(client)` callback. When `clients` is omitted the
+// component subscribes to the Dashboard's live store slice — keeping
+// existing Dashboard usage unchanged.
+export function TopClientsTable({ clients: clientsProp, onRowClick, subtitle }) {
+  const storeClients = useStore(s => s.proxyStats.topClients);
+  const clients = (clientsProp ?? storeClients) || [];
+  const clickable = typeof onRowClick === 'function';
 
   return (
     <div className="apple-card">
       <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Top clients</h3>
       <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginBottom: 16 }}>
-        grouped by IP + User-Agent · last 24h
+        {subtitle || 'grouped by IP + User-Agent · last 24h'}
       </div>
       {clients.length === 0 ? (
         <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--apple-text-secondary)', fontSize: 13 }}>
@@ -30,11 +36,25 @@ export function TopClientsTable() {
                 <th style={{ ...thStyle, textAlign: 'right' }}>Failed</th>
                 <th style={{ ...thStyle, textAlign: 'right' }}>Credits</th>
                 <th style={thStyle}>Last seen</th>
+                {clickable && <th style={{ ...thStyle, width: 28 }} aria-label="Actions" />}
               </tr>
             </thead>
             <tbody>
               {clients.map((c, i) => (
-                <tr key={`${c.client_ip}-${c.client_ua}-${i}`} style={{ borderBottom: '1px solid var(--apple-separator)' }}>
+                // Mouse users click anywhere on the row via <tr onClick>.
+                // Keyboard/screen-reader users tab into the dedicated
+                // action <button> in the last cell. The <tr> keeps its
+                // native `row` role, so table semantics are preserved.
+                <tr
+                  key={`${c.client_ip}-${c.client_ua}-${i}`}
+                  onClick={clickable ? () => onRowClick(c) : undefined}
+                  style={{
+                    borderBottom: '1px solid var(--apple-separator)',
+                    cursor: clickable ? 'pointer' : 'default',
+                  }}
+                  onMouseEnter={clickable ? e => (e.currentTarget.style.background = 'var(--apple-surface)') : undefined}
+                  onMouseLeave={clickable ? e => (e.currentTarget.style.background = 'transparent') : undefined}
+                >
                   <td style={tdStyle}>
                     <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 11 }}>
                       {c.client_ip || '(unknown)'}
@@ -49,6 +69,27 @@ export function TopClientsTable() {
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>{formatNumber(c.creditsUsed)}</td>
                   <td style={{ ...tdStyle, color: 'var(--apple-text-secondary)', fontSize: 11 }}>{timeAgo(c.lastSeenAt)}</td>
+                  {clickable && (
+                    <td style={{ ...tdStyle, textAlign: 'right', verticalAlign: 'middle' }}>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onRowClick(c); }}
+                        aria-label={`Drill down by client ${c.client_ip || 'unknown'}`}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          padding: '2px 6px',
+                          cursor: 'pointer',
+                          color: 'var(--apple-text-secondary)',
+                          fontSize: 14,
+                          lineHeight: 1,
+                        }}
+                        title="Open in Reports"
+                      >
+                        {'\u2192'}
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

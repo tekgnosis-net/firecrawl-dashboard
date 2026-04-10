@@ -7,8 +7,13 @@ function truncate(s, n) {
   return s.length > n ? s.substring(0, n - 1) + '\u2026' : s;
 }
 
-export function RecentErrorsCard() {
-  const errors = useStore(s => s.proxyStats.recentErrors) || [];
+// Accepts optional `errors` prop (prop-fed from Reports page) and an
+// optional `onRowClick(errorRow)` callback. Backward-compatible: omit
+// both to fall back to the store slice used by the Dashboard.
+export function RecentErrorsCard({ errors: errorsProp, onRowClick }) {
+  const storeErrors = useStore(s => s.proxyStats.recentErrors);
+  const errors = (errorsProp ?? storeErrors) || [];
+  const clickable = typeof onRowClick === 'function';
 
   return (
     <div className="apple-card">
@@ -22,16 +27,37 @@ export function RecentErrorsCard() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
-          {errors.slice(0, 20).map(e => (
+          {errors.slice(0, 20).map(e => {
+            // Keyboard activation for clickable error rows, matching
+            // the pattern on the other Dashboard drill-down widgets.
+            const handleKeyDown = clickable
+              ? (ev) => {
+                  if (ev.key === 'Enter' || ev.key === ' ') {
+                    ev.preventDefault();
+                    onRowClick(e);
+                  }
+                }
+              : undefined;
+            return (
             <div
               key={e.id}
+              onClick={clickable ? () => onRowClick(e) : undefined}
+              onKeyDown={handleKeyDown}
+              role={clickable ? 'button' : undefined}
+              tabIndex={clickable ? 0 : undefined}
+              aria-label={clickable ? `Open detail for ${e.operation_type} error #${e.id}` : undefined}
               style={{
                 padding: '8px 12px',
                 background: 'var(--apple-error-bg)',
                 border: '1px solid var(--apple-error-border)',
                 borderRadius: 8,
                 fontSize: 12,
+                cursor: clickable ? 'pointer' : 'default',
+                transition: 'transform 0.1s ease',
               }}
+              onMouseEnter={clickable ? ev => (ev.currentTarget.style.transform = 'translateX(2px)') : undefined}
+              onMouseLeave={clickable ? ev => (ev.currentTarget.style.transform = 'translateX(0)') : undefined}
+              title={clickable ? 'Click to open full detail in Reports' : undefined}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                 <span style={{ fontWeight: 600, color: 'var(--apple-red)' }}>
@@ -50,7 +76,8 @@ export function RecentErrorsCard() {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -32,8 +32,17 @@ function formatBucketLabel(bucket) {
   catch { return bucket; }
 }
 
-export function ProxyActivityChart() {
-  const timeline = useStore(s => s.proxyStats.timeline) || [];
+// Optional `timeline` prop lets callers feed pre-fetched data (e.g. the
+// Reports page, which reads from its own filter-aware store slice).
+// When omitted, the chart subscribes to the Dashboard's live proxyStats
+// slice — keeping existing callers unchanged.
+//
+// Optional `onBarClick(bucket, operationType)` callback fires when the
+// user clicks a bar segment. Used by the Dashboard to navigate into
+// /reports?hours=24&operation_type=<type>&from=<bucket> style URLs.
+export function ProxyActivityChart({ timeline: timelineProp, height = 220, onBarClick }) {
+  const storeTimeline = useStore(s => s.proxyStats.timeline);
+  const timeline = (timelineProp ?? storeTimeline) || [];
 
   if (timeline.length === 0) {
     return (
@@ -52,10 +61,28 @@ export function ProxyActivityChart() {
   }
   const typesToRender = TYPE_ORDER.filter(t => typesPresent.has(t));
 
-  const formatted = timeline.map(row => ({ ...row, bucket: formatBucketLabel(row.bucket) }));
+  // Keep the raw ISO bucket on each row under `_bucketRaw` so click
+  // handlers can reconstruct the actual time range. The `bucket` field
+  // itself holds the short label used by the x-axis.
+  const formatted = timeline.map(row => ({
+    ...row,
+    _bucketRaw: row.bucket,
+    bucket: formatBucketLabel(row.bucket),
+  }));
+
+  const handleBarClick = (type) => (data) => {
+    if (!onBarClick) return;
+    // Recharts' <Bar onClick> fires with (data, index, event). The
+    // first argument is the bar-shape object, and the original data
+    // row from the chart `data` prop lives on `.payload`. Prefer that;
+    // fall back to `data` itself for defensive reading.
+    const row = data?.payload || data;
+    const bucketRaw = row?._bucketRaw || row?.bucket;
+    onBarClick(bucketRaw, type);
+  };
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height={height}>
       <BarChart data={formatted} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--apple-separator)" vertical={false} />
         <XAxis dataKey="bucket" tick={{ fontSize: 11, fill: 'var(--apple-text-secondary)' }} axisLine={false} tickLine={false} />
@@ -79,6 +106,8 @@ export function ProxyActivityChart() {
             fill={TYPE_COLORS[type]}
             stackId="a"
             radius={i === typesToRender.length - 1 ? [3, 3, 0, 0] : 0}
+            onClick={onBarClick ? handleBarClick(type) : undefined}
+            style={{ cursor: onBarClick ? 'pointer' : 'default' }}
           />
         ))}
       </BarChart>

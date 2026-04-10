@@ -128,6 +128,34 @@ export const useStore = create((set, get) => ({
   activeCrawlsDetails: {},     // { [id]: { id, status, total, completed, creditsUsed, data, fetchedAt } }
   sessionCrawlIds: [],         // crawl IDs submitted via this browser session
 
+  // --- Reports page state (drill-down analytics) ---
+  // Filter bag is the source of truth for the Reports page. URL query
+  // params populate this; chart/table components read from the per-slot
+  // data fields. Not part of the main polling loop — fetched on filter
+  // change and optional auto-refresh.
+  reports: {
+    filters: { hours: 24 },
+    overview: null,
+    timeline: [],
+    distribution: null,
+    statusCodes: [],
+    topClients: [],
+    topDomains: [],
+    recentErrors: [],
+    heatmap: [],
+    operations: { rows: [], total: 0, limit: 50, offset: 0 },
+    detail: null,            // full row + optional crawl lifecycle
+    loading: false,
+    fetchError: null,
+    lastFetchedAt: null,
+    // Monotonic sequence id incremented on every fetchReports call.
+    // Each fan-out captures the current value at start; when results
+    // settle, it compares against the live value and discards the
+    // patch if another fetch has started since — preventing a slow
+    // older request from clobbering a newer filter's results.
+    fetchSeq: 0,
+  },
+
   // --- Transport state ---
   loading: false,
   error: null,
@@ -489,5 +517,159 @@ export const useStore = create((set, get) => ({
     } finally {
       set({ loading: false });
     }
+  },
+
+  // ============================================================
+  // Reports page (drill-down analytics)
+  // ============================================================
+
+  setReportFilters: (filters) => {
+    set(state => ({ reports: { ...state.reports, filters } }));
+  },
+
+  clearReportFilters: () => {
+    set(state => ({ reports: { ...state.reports, filters: { hours: 24 } } }));
+  },
+
+  /**
+   * Clear the reports-slice fetch error. Used by the Reports page's
+   * error banner Dismiss button. The top-level `clearError` action
+   * only clears the global `error` field, not `reports.fetchError`,
+   * so the Reports banner needs its own clear.
+   */
+  clearReportsError: () => {
+    set(state => ({ reports: { ...state.reports, fetchError: null } }));
+  },
+
+  /**
+   * Fan out to 8 filter-aware endpoints in parallel and merge results
+   * into the reports slice. Uses Promise.allSettled so a single failing
+   * query doesn't clobber the others. Missing results preserve last-known
+   * values (typical "show stale data instead of blank on transient error").
+   */
+  fetchReports: async () => {
+    const { filters } = get().reports;
+    // Strip pagination/bucket/paginated keys from the shared filter
+    // query string — those are appended per-endpoint below, and leaving
+    // them in `cleaned` would produce duplicate query params (e.g.
+    // `limit=50&limit=10`) that Express may parse inconsistently.
+    const {
+      limit: _limit,
+      offset: _offset,
+      bucket: _bucket,
+      paginated: _paginated,
+      ...filterOnly
+    } = filters;
+    const cleaned = Object.fromEntries(
+      Object.entries(filterOnly).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+    );
+    const q = new URLSearchParams(cleaned).toString();
+    const pageLimit = parseInt(filters.limit, 10) || 50;
+    const pageOffset = parseInt(filters.offset, 10) || 0;
+    const bucket = filters.bucket || '5min';
+
+    const endpoints = [
+      ['overview',     `${API_BASE}/stats/proxy/overview?${q}`],
+      ['timeline',     `${API_BASE}/stats/proxy/timeline?${q}&bucket=${bucket}`],
+      ['distribution', `${API_BASE}/stats/proxy/distribution?${q}`],
+      ['statusCodes',  `${API_BASE}/stats/proxy/status-codes?${q}`],
+      ['topClients',   `${API_BASE}/stats/proxy/clients?${q}&limit=10`],
+      ['topDomains',   `${API_BASE}/stats/proxy/domains?${q}&limit=10`],
+      ['heatmap',      `${API_BASE}/stats/proxy/heatmap?${q}`],
+      // `paginated=1` opts in to the {rows, total, limit, offset} envelope
+      // that OperationsTable expects. Dashboard polling uses the same
+      // endpoint without this flag and still gets a plain array of rows.
+      ['operations',   `${API_BASE}/stats/proxy/recent?${q}&paginated=1&limit=${pageLimit}&offset=${pageOffset}`],
+    ];
+
+    // Capture the current sequence id before starting the fan-out.
+    // If another fetchReports() call runs while we're in flight, it
+    // will bump the counter, and we'll discard our patch on settle.
+    const mySeq = (get().reports.fetchSeq || 0) + 1;
+    set(state => ({ reports: { ...state.reports, loading: true, fetchSeq: mySeq } }));
+
+    const results = await Promise.allSettled(endpoints.map(([_, url]) => axios.get(url)));
+
+    // Stale-response guard: if a newer fetch started while we awaited,
+    // drop this patch entirely so we never overwrite newer filter data
+    // with older results.
+    if (get().reports.fetchSeq !== mySeq) return;
+
+    const patch = {};
+    let anySuccess = false;
+    results.forEach((result, i) => {
+      const [slot] = endpoints[i];
+      if (result.status === 'fulfilled' && result.value.data.success) {
+        patch[slot] = result.value.data.data;
+        anySuccess = true;
+      }
+    });
+    patch.lastFetchedAt = new Date().toISOString();
+    patch.fetchError = anySuccess ? null : 'Reports data unreachable';
+    patch.loading = false;
+    set(state => ({ reports: { ...state.reports, ...patch } }));
+  },
+
+  /**
+   * Fetch a single operation row by ID plus, if it's a crawl-related op,
+   * the full lifecycle of rows sharing the same firecrawl_id. Populates
+   * reports.detail for the detail drawer.
+   */
+  fetchOperationDetail: async (id) => {
+    if (id == null) {
+      set(state => ({ reports: { ...state.reports, detail: null } }));
+      return;
+    }
+    try {
+      const r = await axios.get(`${API_BASE}/stats/proxy/operation/${id}`);
+      if (!r.data.success) {
+        set(state => ({ reports: { ...state.reports, detail: null } }));
+        return;
+      }
+      const detail = r.data.data;
+      // For crawl-related rows, also fetch the full lifecycle
+      if (detail.firecrawl_id && String(detail.operation_type).startsWith('crawl_')) {
+        try {
+          const lc = await axios.get(`${API_BASE}/stats/proxy/crawl/${detail.firecrawl_id}`);
+          if (lc.data.success) detail.lifecycle = lc.data.data;
+        } catch (_) { /* lifecycle is optional — drawer handles undefined */ }
+      }
+      set(state => ({ reports: { ...state.reports, detail } }));
+    } catch (err) {
+      // A 404 (or 400) from the operation endpoint almost always means
+      // a stale or hand-edited `?detail=<id>` URL — the row was pruned
+      // by housekeeping, or the user typed an id that doesn't exist.
+      // Treat that as "clear the drawer" and don't surface a global
+      // error banner for it. Other errors (500, network) still flow
+      // through as fetchError since those represent real problems.
+      const status = err?.response?.status;
+      if (status === 404 || status === 400) {
+        set(state => ({ reports: { ...state.reports, detail: null } }));
+        return;
+      }
+      set(state => ({
+        reports: { ...state.reports, detail: null, fetchError: err.message },
+      }));
+    }
+  },
+
+  closeOperationDetail: () => {
+    set(state => ({ reports: { ...state.reports, detail: null } }));
+  },
+
+  /**
+   * Trigger a CSV download of the current filter set. The backend
+   * streams the response with a Content-Disposition header so the
+   * browser handles it as a download. Hard-capped at 10k rows.
+   */
+  exportReportsCsv: () => {
+    const { filters } = get().reports;
+    const cleaned = Object.fromEntries(
+      Object.entries(filters).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+    );
+    const q = new URLSearchParams(cleaned).toString();
+    // Use window.location to trigger a browser download; no CORS issues
+    // because it's same-origin in both dev (via Vite proxy) and prod.
+    window.location.href = `${API_BASE}/stats/proxy/export.csv?${q}`;
   },
 }));
