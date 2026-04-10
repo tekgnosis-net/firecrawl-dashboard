@@ -5,7 +5,7 @@
 // lifecycle of other rows sharing the same firecrawl_id.
 //
 // Dismissed via X button, Esc key, or click on the backdrop.
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { formatDuration, formatBytes, timeAgo } from '../../lib/format';
 
 function Field({ label, value, mono }) {
@@ -95,12 +95,61 @@ function CrawlLifecycleTimeline({ lifecycle, currentId, onSelectRow }) {
 }
 
 export function OperationDetailDrawer({ detail, onClose, onSelectRow }) {
-  // Close on Esc
+  const drawerRef = useRef(null);
+  const closeButtonRef = useRef(null);
+
+  // Focus management + keyboard trap. When the drawer opens we capture
+  // the previously-focused element, move focus to the Close button,
+  // and install a Tab-key handler that keeps focus cycling inside the
+  // drawer. On unmount (close), focus is restored to where it came
+  // from — the idiomatic a11y pattern for modal dialogs.
   useEffect(() => {
     if (!detail) return;
-    function handler(e) { if (e.key === 'Escape') onClose(); }
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    const previouslyFocused = document.activeElement;
+
+    // Delay the focus-move by one frame so React has mounted the
+    // close button before we try to focus it.
+    const raf = requestAnimationFrame(() => {
+      closeButtonRef.current?.focus();
+    });
+
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      // Focus trap: cycle Tab / Shift-Tab within the drawer so
+      // keyboard users can't fall out to the hidden page behind.
+      const drawer = drawerRef.current;
+      if (!drawer) return;
+      const focusables = drawer.querySelectorAll(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('keydown', handleKeyDown);
+      // Restore focus to wherever the user was before the drawer opened
+      // so screen readers and keyboard navigation pick up where they
+      // left off. Guard against stale DOM nodes.
+      if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+        try { previouslyFocused.focus(); } catch (_) { /* ignore */ }
+      }
+    };
   }, [detail, onClose]);
 
   if (!detail) return null;
@@ -125,6 +174,10 @@ export function OperationDetailDrawer({ detail, onClose, onSelectRow }) {
 
       {/* Drawer */}
       <div
+        ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="operation-drawer-title"
         style={{
           position: 'fixed',
           top: 0,
@@ -142,7 +195,7 @@ export function OperationDetailDrawer({ detail, onClose, onSelectRow }) {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid var(--apple-separator)' }}>
           <div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
+            <h2 id="operation-drawer-title" style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
               {detail.operation_type}
             </h2>
             <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginTop: 4 }}>
@@ -150,7 +203,9 @@ export function OperationDetailDrawer({ detail, onClose, onSelectRow }) {
             </div>
           </div>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
+            aria-label="Close operation detail"
             style={{
               background: 'transparent',
               border: 'none',

@@ -148,6 +148,12 @@ export const useStore = create((set, get) => ({
     loading: false,
     fetchError: null,
     lastFetchedAt: null,
+    // Monotonic sequence id incremented on every fetchReports call.
+    // Each fan-out captures the current value at start; when results
+    // settle, it compares against the live value and discards the
+    // patch if another fetch has started since — preventing a slow
+    // older request from clobbering a newer filter's results.
+    fetchSeq: 0,
   },
 
   // --- Transport state ---
@@ -576,8 +582,19 @@ export const useStore = create((set, get) => ({
       ['operations',   `${API_BASE}/stats/proxy/recent?${q}&paginated=1&limit=${pageLimit}&offset=${pageOffset}`],
     ];
 
-    set(state => ({ reports: { ...state.reports, loading: true } }));
+    // Capture the current sequence id before starting the fan-out.
+    // If another fetchReports() call runs while we're in flight, it
+    // will bump the counter, and we'll discard our patch on settle.
+    const mySeq = (get().reports.fetchSeq || 0) + 1;
+    set(state => ({ reports: { ...state.reports, loading: true, fetchSeq: mySeq } }));
+
     const results = await Promise.allSettled(endpoints.map(([_, url]) => axios.get(url)));
+
+    // Stale-response guard: if a newer fetch started while we awaited,
+    // drop this patch entirely so we never overwrite newer filter data
+    // with older results.
+    if (get().reports.fetchSeq !== mySeq) return;
+
     const patch = {};
     let anySuccess = false;
     results.forEach((result, i) => {

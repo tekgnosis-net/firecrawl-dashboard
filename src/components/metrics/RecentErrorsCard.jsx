@@ -27,10 +27,25 @@ export function RecentErrorsCard({ errors: errorsProp, onRowClick }) {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
-          {errors.slice(0, 20).map(e => (
+          {errors.slice(0, 20).map(e => {
+            // Keyboard activation for clickable error rows, matching
+            // the pattern on the other Dashboard drill-down widgets.
+            const handleKeyDown = clickable
+              ? (ev) => {
+                  if (ev.key === 'Enter' || ev.key === ' ') {
+                    ev.preventDefault();
+                    onRowClick(e);
+                  }
+                }
+              : undefined;
+            return (
             <div
               key={e.id}
               onClick={clickable ? () => onRowClick(e) : undefined}
+              onKeyDown={handleKeyDown}
+              role={clickable ? 'button' : undefined}
+              tabIndex={clickable ? 0 : undefined}
+              aria-label={clickable ? `Open detail for ${e.operation_type} error #${e.id}` : undefined}
               style={{
                 padding: '8px 12px',
                 background: 'var(--apple-error-bg)',
@@ -61,7 +76,8 @@ export function RecentErrorsCard({ errors: errorsProp, onRowClick }) {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

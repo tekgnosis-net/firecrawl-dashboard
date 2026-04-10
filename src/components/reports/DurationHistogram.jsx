@@ -17,7 +17,7 @@ function bucketColor(label) {
   const normal = new Set(['500ms-1s', '1-5s']);
   if (fast.has(label)) return 'var(--apple-green)';
   if (normal.has(label)) return 'var(--apple-blue)';
-  return 'var(--apple-orange, #FF9500)';
+  return 'var(--apple-orange)';
 }
 
 function PercentileTile({ label, value }) {

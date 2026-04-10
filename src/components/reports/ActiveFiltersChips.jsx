@@ -2,13 +2,21 @@
 //
 // Visual row of dismissable chips representing currently-active filters.
 // Click a chip's × to remove just that filter without touching others.
-// Skips the default-24h time filter (always present) and the `limit`/
-// `offset` pagination keys (not user-visible "filters").
+// Pagination keys (`limit`, `offset`, `page`, `bucket`) and the opt-in
+// `paginated` flag are never user-facing filters, so they're always
+// hidden. The `detail` key also never appears as a chip — opening the
+// detail drawer would otherwise create a confusing "filter" entry.
+// The `hours` key is hidden ONLY when it matches the default (24),
+// so a non-default time window (e.g. Last 1h) still shows up as a chip.
 
-const HIDDEN_KEYS = new Set(['limit', 'offset', 'bucket', 'hours', 'page']);
+const DEFAULT_HOURS = 24;
+const HIDDEN_KEYS = new Set([
+  'limit', 'offset', 'bucket', 'page', 'paginated', 'detail',
+]);
 
 // Human-friendly labels for each filter key
 const LABELS = {
+  hours: 'window',
   operation_type: 'type',
   client_ip: 'client',
   target_host: 'host',
@@ -28,6 +36,7 @@ function formatValue(key, value) {
     if (value === 'true' || value === true) return 'success only';
     if (value === 'false' || value === false) return 'failures only';
   }
+  if (key === 'hours') return `last ${value}h`;
   return String(value);
 }
 
@@ -36,6 +45,9 @@ export function ActiveFiltersChips({ filters, onRemove }) {
   for (const [key, value] of Object.entries(filters || {})) {
     if (HIDDEN_KEYS.has(key)) continue;
     if (value === '' || value === null || value === undefined) continue;
+    // Hide `hours` ONLY at the default value. Non-default windows
+    // (e.g. `hours=1`) are real user-visible filters and deserve a chip.
+    if (key === 'hours' && Number(value) === DEFAULT_HOURS) continue;
     chips.push({ key, value });
   }
 

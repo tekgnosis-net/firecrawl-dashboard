@@ -15,7 +15,7 @@ const CLASS_ORDER = ['2xx', '3xx', '4xx', '5xx', '1xx', 'transport_error'];
 const CLASS_COLORS = {
   '2xx':             'var(--apple-green)',
   '3xx':             'var(--apple-blue)',
-  '4xx':             'var(--apple-orange, #FF9500)',
+  '4xx':             'var(--apple-orange)',
   '5xx':             'var(--apple-red)',
   '1xx':             'var(--apple-gray)',
   'transport_error': 'var(--apple-gray)',

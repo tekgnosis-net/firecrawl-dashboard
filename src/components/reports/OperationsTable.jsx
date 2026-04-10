@@ -110,6 +110,18 @@ export function OperationsTable({ data, loading, onRowClick, onPageChange }) {
                 <tr
                   key={row.id}
                   onClick={() => onRowClick(row.id)}
+                  onKeyDown={(e) => {
+                    // Keyboard activation: Enter or Space opens the
+                    // detail drawer, matching the same pattern used
+                    // by the Dashboard drill-down widgets.
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onRowClick(row.id);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Open detail for ${row.operation_type} operation #${row.id}`}
                   style={{
                     borderBottom: '1px solid var(--apple-separator)',
                     cursor: 'pointer',

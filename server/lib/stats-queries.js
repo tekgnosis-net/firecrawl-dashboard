@@ -61,13 +61,25 @@ function buildFilterClause(filters = {}) {
   const conditions = ['1=1'];
   const params = [];
 
-  // Time range: explicit from/to wins over `hours`
+  // Time range: explicit from/to wins over `hours`.
+  //
+  // The `timestamp` column stores strings written by JS's
+  // `new Date().toISOString()` — format `'2026-04-10T17:41:02.500Z'`.
+  // SQLite's `datetime('now', ...)` returns a DIFFERENT format
+  // `'2026-04-10 17:41:02'` (space-separated, no milliseconds, no Z),
+  // and a naive lexicographic comparison between the two can
+  // mis-classify timestamps at the sub-second boundary (`T` (0x54)
+  // > space (0x20) confuses the ordering). `strftime` with an
+  // explicit ISO-compatible format pattern keeps the threshold in
+  // the same textual shape as the stored column, so `>=` and `<`
+  // behave correctly AND SQLite can still use the timestamp index
+  // (no function applied to the column side).
   if (filters.from && filters.to) {
     conditions.push('timestamp >= ? AND timestamp < ?');
     params.push(filters.from, filters.to);
   } else {
     const hours = clampHours(filters.hours, 720);
-    conditions.push("timestamp >= datetime('now', '-' || ? || ' hours')");
+    conditions.push("timestamp >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-' || ? || ' hours')");
     params.push(hours);
   }
 
@@ -606,7 +618,16 @@ export function exportRowsAsCsv(db, filters, sink, maxRows = 10000) {
 
   function csvEscape(v) {
     if (v === null || v === undefined) return '';
-    const s = String(v);
+    let s = String(v);
+    // Neutralize CSV/Excel formula injection: a leading =, +, -, @,
+    // tab, or CR can cause Excel/LibreOffice/Google Sheets to evaluate
+    // the cell as a formula (CVE class "Formula Injection"). Prefix
+    // with a single quote — the spreadsheet treats that as "this is
+    // a literal string" and renders it as plain text. The single
+    // quote is stripped on display in major spreadsheet apps.
+    if (s.length > 0 && /^[=+\-@\t\r]/.test(s)) {
+      s = "'" + s;
+    }
     // Quote if contains comma, quote, or newline; double-up embedded quotes
     if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
     return s;

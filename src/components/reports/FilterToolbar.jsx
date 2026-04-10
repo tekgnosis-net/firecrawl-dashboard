@@ -92,12 +92,31 @@ export function FilterToolbar({ filters, onChange, onClear, onExport }) {
       padding: 12,
     }}>
       <select
-        value={filters.hours || 24}
-        onChange={e => onChange({ hours: Number(e.target.value), from: undefined, to: undefined })}
+        value={
+          // When the URL uses explicit from/to, the preset doesn't
+          // represent the active window — surface that by selecting
+          // the synthetic 'custom' option instead of lying with '24'.
+          filters.from || filters.to
+            ? 'custom'
+            : (filters.hours ?? 24)
+        }
+        onChange={e => {
+          const v = e.target.value;
+          if (v === 'custom') return; // no-op: custom comes from from/to
+          onChange({ hours: Number(v), from: undefined, to: undefined });
+        }}
         className="apple-input"
         style={{ width: 'auto', minWidth: 140 }}
+        title={
+          filters.from || filters.to
+            ? `Custom range: ${filters.from || '\u2026'} \u2192 ${filters.to || '\u2026'}`
+            : 'Select time window'
+        }
       >
         {TIME_PRESETS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+        {(filters.from || filters.to) && (
+          <option value="custom">Custom range</option>
+        )}
       </select>
 
       <select
