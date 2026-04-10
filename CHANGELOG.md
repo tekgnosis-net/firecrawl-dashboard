@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.1.0...v2.1.1) (2026-04-10)
+
+
+### Bug Fixes
+
+* **ui:** render unicode characters correctly + sync README docker-compose with PROXY_HOST ([e29fe59](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/e29fe59e775a676266f4781cb66c715bc041ec90))
+
 # [2.1.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.0.3...v2.1.0) (2026-04-10)
 
 
