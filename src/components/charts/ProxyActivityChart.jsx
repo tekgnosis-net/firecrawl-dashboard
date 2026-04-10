@@ -70,12 +70,14 @@ export function ProxyActivityChart({ timeline: timelineProp, height = 220, onBar
     bucket: formatBucketLabel(row.bucket),
   }));
 
-  const handleBarClick = (type) => (_data, _index, event) => {
+  const handleBarClick = (type) => (data) => {
     if (!onBarClick) return;
-    // Recharts passes the row data as the first arg of the bar click;
-    // read the raw ISO bucket we stashed above.
-    const payload = event?.payload || _data;
-    const bucketRaw = payload?._bucketRaw || payload?.bucket;
+    // Recharts' <Bar onClick> fires with (data, index, event). The
+    // first argument is the bar-shape object, and the original data
+    // row from the chart `data` prop lives on `.payload`. Prefer that;
+    // fall back to `data` itself for defensive reading.
+    const row = data?.payload || data;
+    const bucketRaw = row?._bucketRaw || row?.bucket;
     onBarClick(bucketRaw, type);
   };
 

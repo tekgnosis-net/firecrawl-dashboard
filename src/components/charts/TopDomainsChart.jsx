@@ -26,10 +26,25 @@ export function TopDomainsChart({ data: dataProp, onRowClick }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {data.map((row) => {
         const { target_host, count, successRate } = row;
+        // Keyboard handler: when the row is clickable, Enter/Space
+        // should activate the drill-down so keyboard users get the
+        // same navigation path as mouse users.
+        const handleKeyDown = clickable
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onRowClick(row);
+              }
+            }
+          : undefined;
         return (
         <div
           key={target_host || '(unknown)'}
           onClick={clickable ? () => onRowClick(row) : undefined}
+          onKeyDown={handleKeyDown}
+          role={clickable ? 'button' : undefined}
+          tabIndex={clickable ? 0 : undefined}
+          aria-label={clickable ? `Drill down by target host ${target_host || 'unknown'}` : undefined}
           style={{
             cursor: clickable ? 'pointer' : 'default',
             padding: clickable ? '4px 6px' : 0,

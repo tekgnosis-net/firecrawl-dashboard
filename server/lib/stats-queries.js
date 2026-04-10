@@ -106,13 +106,22 @@ function buildFilterClause(filters = {}) {
       params.push(range[0], range[1]);
     }
   }
+  // status_min / status_max are only applied when the parsed value is
+  // a finite number. A non-numeric input (e.g. ?status_min=abc) would
+  // otherwise bind NaN into the query, producing surprising results.
   if (filters.status_min !== undefined && filters.status_min !== '') {
-    conditions.push('response_status >= ?');
-    params.push(parseInt(filters.status_min, 10));
+    const n = parseInt(filters.status_min, 10);
+    if (Number.isFinite(n)) {
+      conditions.push('response_status >= ?');
+      params.push(n);
+    }
   }
   if (filters.status_max !== undefined && filters.status_max !== '') {
-    conditions.push('response_status <= ?');
-    params.push(parseInt(filters.status_max, 10));
+    const n = parseInt(filters.status_max, 10);
+    if (Number.isFinite(n)) {
+      conditions.push('response_status <= ?');
+      params.push(n);
+    }
   }
 
   // Success flag — accept strings or booleans
@@ -379,6 +388,17 @@ export function getRecent(db, filters = {}) {
     ORDER BY timestamp DESC
     LIMIT ? OFFSET ?
   `).all(...params, limit, offset);
+
+  // Backward-compatible: the default return shape is a plain array of
+  // rows, because Dashboard polling (`proxyStats.recentOps` in the
+  // store) and CrawlPage both iterate this as an array. The Reports
+  // page opts in to the paginated envelope by passing `paginated=1`
+  // in the query string, which also triggers the COUNT query used
+  // for pagination metadata.
+  const paginated = filters.paginated === '1'
+    || filters.paginated === 'true'
+    || filters.paginated === true;
+  if (!paginated) return rows;
 
   const { total } = db.prepare(`
     SELECT COUNT(*) AS total FROM proxy_operations WHERE ${where}

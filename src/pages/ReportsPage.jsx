@@ -30,13 +30,29 @@ import { OperationDetailDrawer } from '../components/reports/OperationDetailDraw
 // Parse a URLSearchParams object into the plain filter bag shape that
 // the store and toolbar components understand. String-typed query params
 // are coerced where the backend expects numbers (hours, limit, offset).
+//
+// Non-numeric or empty values for numeric keys are dropped rather than
+// propagated as NaN — otherwise the filter bag would round-trip to the
+// URL as `hours=NaN`, polluting shareable links and producing garbage
+// backend queries.
+function coerceNumber(raw, key, out) {
+  if (raw[key] === undefined || raw[key] === '') {
+    delete out[key];
+    return;
+  }
+  const n = Number(raw[key]);
+  if (Number.isFinite(n)) out[key] = n;
+  else delete out[key];
+}
+
 function parseFiltersFromUrl(searchParams) {
   const raw = Object.fromEntries(searchParams.entries());
   const filters = { ...raw };
-  if (raw.hours !== undefined) filters.hours = Number(raw.hours);
-  if (raw.limit !== undefined) filters.limit = Number(raw.limit);
-  if (raw.offset !== undefined) filters.offset = Number(raw.offset);
-  // Default: last 24h window
+  coerceNumber(raw, 'hours', filters);
+  coerceNumber(raw, 'limit', filters);
+  coerceNumber(raw, 'offset', filters);
+  // Default: last 24h window. Applied only if no explicit hours AND
+  // no from/to range was provided.
   if (filters.hours === undefined && !filters.from && !filters.to) {
     filters.hours = 24;
   }
@@ -64,7 +80,9 @@ export function ReportsPage() {
   const fetchOperationDetail = useStore(s => s.fetchOperationDetail);
   const closeOperationDetail = useStore(s => s.closeOperationDetail);
   const exportReportsCsv = useStore(s => s.exportReportsCsv);
-  const clearError = useStore(s => s.clearError);
+  // Note: the Reports error banner needs its own clear action because
+  // the global `clearError` only touches state.error, not reports.fetchError.
+  const clearReportsError = useStore(s => s.clearReportsError);
 
   // On mount and whenever URL params change, push the parsed filter bag
   // into the store and trigger a fetch. The store action re-fetches all
@@ -161,7 +179,7 @@ export function ReportsPage() {
         >
           <span style={{ fontSize: 13 }}>{'\u26A0'} {reports.fetchError}</span>
           <button
-            onClick={clearError}
+            onClick={clearReportsError}
             style={{ background: 'none', border: 'none', color: 'var(--apple-red)', cursor: 'pointer', fontSize: 13 }}
           >
             Dismiss

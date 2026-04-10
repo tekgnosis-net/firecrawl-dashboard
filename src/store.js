@@ -526,6 +526,16 @@ export const useStore = create((set, get) => ({
   },
 
   /**
+   * Clear the reports-slice fetch error. Used by the Reports page's
+   * error banner Dismiss button. The top-level `clearError` action
+   * only clears the global `error` field, not `reports.fetchError`,
+   * so the Reports banner needs its own clear.
+   */
+  clearReportsError: () => {
+    set(state => ({ reports: { ...state.reports, fetchError: null } }));
+  },
+
+  /**
    * Fan out to 8 filter-aware endpoints in parallel and merge results
    * into the reports slice. Uses Promise.allSettled so a single failing
    * query doesn't clobber the others. Missing results preserve last-known
@@ -533,24 +543,37 @@ export const useStore = create((set, get) => ({
    */
   fetchReports: async () => {
     const { filters } = get().reports;
-    // Serialize filter bag into a query string. Only include keys with
-    // truthy values so the URL/query params stay clean.
+    // Strip pagination/bucket/paginated keys from the shared filter
+    // query string — those are appended per-endpoint below, and leaving
+    // them in `cleaned` would produce duplicate query params (e.g.
+    // `limit=50&limit=10`) that Express may parse inconsistently.
+    const {
+      limit: _limit,
+      offset: _offset,
+      bucket: _bucket,
+      paginated: _paginated,
+      ...filterOnly
+    } = filters;
     const cleaned = Object.fromEntries(
-      Object.entries(filters).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+      Object.entries(filterOnly).filter(([, v]) => v !== '' && v !== null && v !== undefined)
     );
     const q = new URLSearchParams(cleaned).toString();
     const pageLimit = parseInt(filters.limit, 10) || 50;
     const pageOffset = parseInt(filters.offset, 10) || 0;
+    const bucket = filters.bucket || '5min';
 
     const endpoints = [
       ['overview',     `${API_BASE}/stats/proxy/overview?${q}`],
-      ['timeline',     `${API_BASE}/stats/proxy/timeline?${q}&bucket=${filters.bucket || '5min'}`],
+      ['timeline',     `${API_BASE}/stats/proxy/timeline?${q}&bucket=${bucket}`],
       ['distribution', `${API_BASE}/stats/proxy/distribution?${q}`],
       ['statusCodes',  `${API_BASE}/stats/proxy/status-codes?${q}`],
       ['topClients',   `${API_BASE}/stats/proxy/clients?${q}&limit=10`],
       ['topDomains',   `${API_BASE}/stats/proxy/domains?${q}&limit=10`],
       ['heatmap',      `${API_BASE}/stats/proxy/heatmap?${q}`],
-      ['operations',   `${API_BASE}/stats/proxy/recent?${q}&limit=${pageLimit}&offset=${pageOffset}`],
+      // `paginated=1` opts in to the {rows, total, limit, offset} envelope
+      // that OperationsTable expects. Dashboard polling uses the same
+      // endpoint without this flag and still gets a plain array of rows.
+      ['operations',   `${API_BASE}/stats/proxy/recent?${q}&paginated=1&limit=${pageLimit}&offset=${pageOffset}`],
     ];
 
     set(state => ({ reports: { ...state.reports, loading: true } }));

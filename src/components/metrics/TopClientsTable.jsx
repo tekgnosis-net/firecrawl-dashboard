@@ -39,10 +39,28 @@ export function TopClientsTable({ clients: clientsProp, onRowClick, subtitle }) 
               </tr>
             </thead>
             <tbody>
-              {clients.map((c, i) => (
+              {clients.map((c, i) => {
+                // Keyboard activation for the clickable row. <tr> isn't
+                // a semantic button but accepts tabIndex={0} as a focus
+                // stop in all modern browsers, which is the minimal
+                // accessible path that doesn't require restructuring
+                // the table into nested focusable cells.
+                const handleKeyDown = clickable
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onRowClick(c);
+                      }
+                    }
+                  : undefined;
+                return (
                 <tr
                   key={`${c.client_ip}-${c.client_ua}-${i}`}
                   onClick={clickable ? () => onRowClick(c) : undefined}
+                  onKeyDown={handleKeyDown}
+                  role={clickable ? 'button' : undefined}
+                  tabIndex={clickable ? 0 : undefined}
+                  aria-label={clickable ? `Drill down by client ${c.client_ip || 'unknown'}` : undefined}
                   style={{
                     borderBottom: '1px solid var(--apple-separator)',
                     cursor: clickable ? 'pointer' : 'default',
@@ -65,7 +83,8 @@ export function TopClientsTable({ clients: clientsProp, onRowClick, subtitle }) 
                   <td style={{ ...tdStyle, textAlign: 'right' }}>{formatNumber(c.creditsUsed)}</td>
                   <td style={{ ...tdStyle, color: 'var(--apple-text-secondary)', fontSize: 11 }}>{timeAgo(c.lastSeenAt)}</td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

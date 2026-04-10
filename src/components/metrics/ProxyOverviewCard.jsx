@@ -17,10 +17,26 @@ export function ProxyOverviewCard({ overview: overviewProp, onClick }) {
   const p95Dur = overview?.p95DurationMs;
   const clickable = typeof onClick === 'function';
 
+  // Keyboard support: when clickable, behave like a button — Enter and
+  // Space activate the drill-down, Tab focuses the card. Without this,
+  // keyboard-only users couldn't reach the navigation at all.
+  const handleKeyDown = clickable
+    ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick(e);
+        }
+      }
+    : undefined;
+
   return (
     <div
       className="apple-card"
       onClick={clickable ? onClick : undefined}
+      onKeyDown={handleKeyDown}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      aria-label={clickable ? 'Drill down into Reports with last-24h traffic' : undefined}
       style={clickable ? { cursor: 'pointer', transition: 'transform 0.1s ease' } : undefined}
       onMouseEnter={clickable ? e => (e.currentTarget.style.transform = 'translateY(-1px)') : undefined}
       onMouseLeave={clickable ? e => (e.currentTarget.style.transform = 'translateY(0)') : undefined}
