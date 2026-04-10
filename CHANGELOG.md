@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.5.0...v1.5.1) (2026-04-10)
+
+
+### Bug Fixes
+
+* address Copilot review feedback ([2a5e8d7](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/2a5e8d725ff2d54e9ad26760953494e38b0fe884)), closes [#3](https://github.com/tekgnosis-net/firecrawl-dashboard/issues/3) [#4](https://github.com/tekgnosis-net/firecrawl-dashboard/issues/4) [#1](https://github.com/tekgnosis-net/firecrawl-dashboard/issues/1) [#5](https://github.com/tekgnosis-net/firecrawl-dashboard/issues/5) [#6](https://github.com/tekgnosis-net/firecrawl-dashboard/issues/6) [#7](https://github.com/tekgnosis-net/firecrawl-dashboard/issues/7) [#2](https://github.com/tekgnosis-net/firecrawl-dashboard/issues/2)
+
 # [1.5.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.4.0...v1.5.0) (2026-04-09)
 
 
