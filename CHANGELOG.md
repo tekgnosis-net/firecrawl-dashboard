@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.0.1...v2.0.2) (2026-04-10)
+
+
+### Bug Fixes
+
+* **settings:** text inputs lose focus on every keystroke ([4bd0840](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/4bd0840fff71025b9cd29fe6b171987e16768eb9))
+
 ## [2.0.1](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.0.0...v2.0.1) (2026-04-10)
 
 
