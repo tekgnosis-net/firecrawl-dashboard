@@ -7,14 +7,20 @@ function truncate(s, n) {
   return s.length > n ? s.substring(0, n - 1) + '\u2026' : s;
 }
 
-export function TopClientsTable() {
-  const clients = useStore(s => s.proxyStats.topClients) || [];
+// Accepts optional `clients` prop (prop-fed on Reports page) and an
+// optional `onRowClick(client)` callback. When `clients` is omitted the
+// component subscribes to the Dashboard's live store slice — keeping
+// existing Dashboard usage unchanged.
+export function TopClientsTable({ clients: clientsProp, onRowClick, subtitle }) {
+  const storeClients = useStore(s => s.proxyStats.topClients);
+  const clients = (clientsProp ?? storeClients) || [];
+  const clickable = typeof onRowClick === 'function';
 
   return (
     <div className="apple-card">
       <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Top clients</h3>
       <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginBottom: 16 }}>
-        grouped by IP + User-Agent · last 24h
+        {subtitle || 'grouped by IP + User-Agent · last 24h'}
       </div>
       {clients.length === 0 ? (
         <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--apple-text-secondary)', fontSize: 13 }}>
@@ -34,7 +40,16 @@ export function TopClientsTable() {
             </thead>
             <tbody>
               {clients.map((c, i) => (
-                <tr key={`${c.client_ip}-${c.client_ua}-${i}`} style={{ borderBottom: '1px solid var(--apple-separator)' }}>
+                <tr
+                  key={`${c.client_ip}-${c.client_ua}-${i}`}
+                  onClick={clickable ? () => onRowClick(c) : undefined}
+                  style={{
+                    borderBottom: '1px solid var(--apple-separator)',
+                    cursor: clickable ? 'pointer' : 'default',
+                  }}
+                  onMouseEnter={clickable ? e => (e.currentTarget.style.background = 'var(--apple-surface)') : undefined}
+                  onMouseLeave={clickable ? e => (e.currentTarget.style.background = 'transparent') : undefined}
+                >
                   <td style={tdStyle}>
                     <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 11 }}>
                       {c.client_ip || '(unknown)'}

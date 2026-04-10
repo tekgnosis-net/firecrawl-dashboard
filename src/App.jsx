@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useStore } from './store';
 import { Layout } from './components/Layout';
 import { DashboardPage } from './pages/DashboardPage';
+import { ReportsPage } from './pages/ReportsPage';
 import { CrawlPage } from './pages/CrawlPage';
 import { ScrapePage } from './pages/ScrapePage';
 import { SearchPage } from './pages/SearchPage';
@@ -34,6 +35,7 @@ function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
           <Route path="/crawl" element={<CrawlPage />} />
           <Route path="/scrape" element={<ScrapePage />} />
           <Route path="/search" element={<SearchPage />} />

@@ -1,20 +1,32 @@
 // src/components/Sidebar.jsx
-import { NavLink } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useStore } from '../store';
 
-const NAV_ITEMS = [
-  { to: '/', icon: '📊', label: 'Dashboard', end: true },
-  { to: '/crawl', icon: '🕸️', label: 'Crawl' },
+// Top-level nav items (not in any group)
+const TOP_NAV_ITEMS = [
+  { to: '/',         icon: '📊', label: 'Dashboard', end: true },
+  { to: '/reports',  icon: '📈', label: 'Reports' },
+];
+
+// Firecrawl Tools — collapsible group. These routes are grouped under
+// a single expandable header so the sidebar stays cleaner at rest and
+// clearly separates "analytical views" (Dashboard, Reports) from
+// "interactive tools" (the four Firecrawl operations).
+const TOOLS_GROUP_ITEMS = [
+  { to: '/crawl',  icon: '🕸️', label: 'Crawl' },
   { to: '/scrape', icon: '📄', label: 'Scrape' },
   { to: '/search', icon: '🔍', label: 'Search' },
-  { to: '/map', icon: '🗺️', label: 'Map' },
+  { to: '/map',    icon: '🗺️', label: 'Map' },
 ];
+const TOOLS_GROUP_ROUTES = new Set(TOOLS_GROUP_ITEMS.map(i => i.to));
 
 const REPO_URL = 'https://github.com/tekgnosis-net/firecrawl-dashboard';
 
 const SIDEBAR_DARK = '#1C1C1E';
 const SIDEBAR_BORDER = '#38383A';
 const SIDEBAR_MUTED = '#98989D';
+const TOOLS_EXPANDED_KEY = 'firecrawl_sidebar_tools_expanded';
 
 function GitHubIcon({ size = 16 }) {
   return (
@@ -31,6 +43,30 @@ const THEME_CYCLE = { auto: 'light', light: 'dark', dark: 'auto' };
 export function Sidebar() {
   const { sidebarCollapsed, setSidebarCollapsed, theme, setTheme } = useStore();
   const w = sidebarCollapsed ? '60px' : '220px';
+  const location = useLocation();
+
+  // Firecrawl Tools group expansion state.
+  // - Initial value: localStorage-persisted user preference (default: false).
+  // - Auto-expand when the user is on any route inside the group.
+  // - User manual toggle (via the header click) also persists back to localStorage.
+  const [toolsExpanded, setToolsExpanded] = useState(() => {
+    return localStorage.getItem(TOOLS_EXPANDED_KEY) === 'true';
+  });
+  const onToolsRoute = TOOLS_GROUP_ROUTES.has(location.pathname);
+  useEffect(() => {
+    // Auto-expand when navigating into a tools route, but don't auto-collapse
+    // when navigating away — the user's manual expansion choice is preserved.
+    if (onToolsRoute && !toolsExpanded) {
+      setToolsExpanded(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onToolsRoute]);
+
+  function handleToolsToggle() {
+    const next = !toolsExpanded;
+    setToolsExpanded(next);
+    localStorage.setItem(TOOLS_EXPANDED_KEY, String(next));
+  }
 
   const navStyle = ({ isActive }) => ({
     display: 'flex',
@@ -47,6 +83,42 @@ export function Sidebar() {
     overflow: 'hidden',
     transition: 'background 0.15s',
   });
+
+  // Nested nav style — indented + slightly smaller for the tools sub-items
+  const subNavStyle = ({ isActive }) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '6px 10px 6px 28px',
+    borderRadius: '8px',
+    background: isActive ? '#0071E3' : 'transparent',
+    color: isActive ? '#FFFFFF' : SIDEBAR_MUTED,
+    textDecoration: 'none',
+    fontSize: '12px',
+    fontWeight: isActive ? '500' : '400',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    transition: 'background 0.15s',
+  });
+
+  const toolsHeaderStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '8px 10px',
+    borderRadius: '8px',
+    background: onToolsRoute && !toolsExpanded ? 'rgba(0,113,227,0.18)' : 'transparent',
+    color: onToolsRoute ? '#FFFFFF' : SIDEBAR_MUTED,
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: onToolsRoute ? '500' : '400',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    width: '100%',
+    textAlign: 'left',
+    transition: 'background 0.15s',
+  };
 
   return (
     <aside style={{
@@ -66,12 +138,46 @@ export function Sidebar() {
 
       {/* Nav items */}
       <nav style={{ flex: 1, padding: '4px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {NAV_ITEMS.map(({ to, icon, label, end }) => (
+        {/* Top-level: Dashboard, Reports */}
+        {TOP_NAV_ITEMS.map(({ to, icon, label, end }) => (
           <NavLink key={to} to={to} end={end} style={navStyle} title={sidebarCollapsed ? label : undefined}>
             <span style={{ fontSize: '16px', flexShrink: 0, lineHeight: 1 }}>{icon}</span>
             {!sidebarCollapsed && label}
           </NavLink>
         ))}
+
+        {/* Firecrawl Tools group */}
+        {sidebarCollapsed ? (
+          // When sidebar is collapsed, the accordion can't show its children.
+          // Instead, render the 4 tool routes directly as icon-only NavLinks.
+          TOOLS_GROUP_ITEMS.map(({ to, icon, label }) => (
+            <NavLink key={to} to={to} style={navStyle} title={label}>
+              <span style={{ fontSize: '16px', flexShrink: 0, lineHeight: 1 }}>{icon}</span>
+            </NavLink>
+          ))
+        ) : (
+          <>
+            <button
+              onClick={handleToolsToggle}
+              style={toolsHeaderStyle}
+              title={toolsExpanded ? 'Collapse Firecrawl Tools' : 'Expand Firecrawl Tools'}
+            >
+              <span style={{ fontSize: '16px', flexShrink: 0, lineHeight: 1 }}>🔥</span>
+              <span style={{ flex: 1 }}>Firecrawl Tools</span>
+              <span style={{ fontSize: '11px', flexShrink: 0, transition: 'transform 0.2s', transform: toolsExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>▸</span>
+            </button>
+            {toolsExpanded && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                {TOOLS_GROUP_ITEMS.map(({ to, icon, label }) => (
+                  <NavLink key={to} to={to} style={subNavStyle}>
+                    <span style={{ fontSize: '14px', flexShrink: 0, lineHeight: 1 }}>{icon}</span>
+                    {label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </nav>
 
       {/* Settings + controls */}

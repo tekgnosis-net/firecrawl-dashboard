@@ -65,6 +65,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Shimmer animation for loading skeletons (Reports page OperationsTable). */
+@keyframes reportsShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 @layer base {
   html {
     background-color: var(--apple-bg);

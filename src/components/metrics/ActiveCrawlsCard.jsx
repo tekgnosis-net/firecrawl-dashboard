@@ -31,7 +31,8 @@ export function ActiveCrawlsCard() {
             return (
               <Link
                 key={id}
-                to="/crawl"
+                to={`/reports?firecrawl_id=${encodeURIComponent(id)}&hours=24`}
+                title="Open crawl lifecycle in Reports"
                 style={{
                   display: 'block',
                   padding: '8px 12px',

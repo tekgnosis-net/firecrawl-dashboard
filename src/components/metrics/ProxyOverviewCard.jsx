@@ -2,8 +2,12 @@
 import { useStore } from '../../store';
 import { formatNumber, formatPercent, formatDuration } from '../../lib/format';
 
-export function ProxyOverviewCard() {
-  const overview = useStore(s => s.proxyStats.overview);
+// Optional `overview` prop for prop-fed callers; optional `onClick` makes
+// the whole card behave as a navigation target (used by Dashboard to
+// drill down into /reports).
+export function ProxyOverviewCard({ overview: overviewProp, onClick }) {
+  const storeOverview = useStore(s => s.proxyStats.overview);
+  const overview = overviewProp ?? storeOverview;
 
   const total = overview?.total || 0;
   const rate = overview?.successRate;
@@ -11,9 +15,17 @@ export function ProxyOverviewCard() {
   const clients = overview?.uniqueClients || 0;
   const avgDur = overview?.avgDurationMs;
   const p95Dur = overview?.p95DurationMs;
+  const clickable = typeof onClick === 'function';
 
   return (
-    <div className="apple-card">
+    <div
+      className="apple-card"
+      onClick={clickable ? onClick : undefined}
+      style={clickable ? { cursor: 'pointer', transition: 'transform 0.1s ease' } : undefined}
+      onMouseEnter={clickable ? e => (e.currentTarget.style.transform = 'translateY(-1px)') : undefined}
+      onMouseLeave={clickable ? e => (e.currentTarget.style.transform = 'translateY(0)') : undefined}
+      title={clickable ? 'Click to drill down in Reports' : undefined}
+    >
       <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Proxy traffic (last 24h)</h3>
       <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginBottom: 16 }}>
         observed at /v1/*, /v2/*, /admin/*

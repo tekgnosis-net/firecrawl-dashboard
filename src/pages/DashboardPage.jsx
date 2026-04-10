@@ -1,4 +1,5 @@
 // src/pages/DashboardPage.jsx
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
 import { ServerHealthStrip } from '../components/metrics/ServerHealthStrip';
 import { QueueStatusCard } from '../components/metrics/QueueStatusCard';
@@ -14,13 +15,52 @@ import { ProxyActivityChart } from '../components/charts/ProxyActivityChart';
 import { CreditsChart } from '../components/charts/CreditsChart';
 import { TopDomainsChart } from '../components/charts/TopDomainsChart';
 
+// Build a /reports URL with the given filter bag, defaulting to last 24h.
+// All drill-downs share this helper so the URL shape is consistent.
+function reportsUrl(filters = {}) {
+  const merged = { hours: '24', ...filters };
+  const qs = new URLSearchParams(
+    Object.entries(merged).filter(([, v]) => v !== '' && v != null)
+  ).toString();
+  return `/reports?${qs}`;
+}
+
+// Add 5 minutes to an ISO timestamp string — used to close the from/to
+// window when drilling down from a 5-minute timeline bucket.
+function plusFiveMinutes(iso) {
+  try {
+    const d = new Date(iso);
+    d.setMinutes(d.getMinutes() + 5);
+    return d.toISOString();
+  } catch {
+    return iso;
+  }
+}
+
 export function DashboardPage() {
+  const navigate = useNavigate();
   const error = useStore(s => s.error);
   const clearError = useStore(s => s.clearError);
   const proxyFetchError = useStore(s => s.proxyStats.fetchError);
   const serverFetchError = useStore(s => s.serverMetrics.fetchError);
 
   const bannerText = error || proxyFetchError || serverFetchError;
+
+  // ------ Drill-down handlers -----------------------------------------
+
+  const drillOverview  = () => navigate(reportsUrl({}));
+  const drillTimeline  = (bucketRaw, operationType) => {
+    if (!bucketRaw) return navigate(reportsUrl({ operation_type: operationType }));
+    navigate(reportsUrl({
+      operation_type: operationType,
+      from: bucketRaw,
+      to: plusFiveMinutes(bucketRaw),
+      hours: '',  // explicit from/to supersedes hours
+    }));
+  };
+  const drillClient    = (c) => navigate(reportsUrl({ client_ip: c.client_ip }));
+  const drillDomain    = (d) => navigate(reportsUrl({ target_host: d.target_host }));
+  const drillError     = (e) => navigate(reportsUrl({ success: 'false', detail: String(e.id) }));
 
   return (
     <div className="space-y-6">
@@ -55,16 +95,16 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <QueueStatusCard />
         <CreditsTokensCard />
-        <ProxyOverviewCard />
+        <ProxyOverviewCard onClick={drillOverview} />
       </div>
 
       {/* Proxy activity chart */}
       <div className="apple-card">
         <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Proxy activity</h3>
         <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginBottom: 16 }}>
-          operations observed at /v1/*, /v2/*, /admin/* · last 24 h · 5-min buckets
+          operations observed at /v1/*, /v2/*, /admin/* · last 24 h · 5-min buckets · click a bar to drill down
         </div>
-        <ProxyActivityChart />
+        <ProxyActivityChart onBarClick={drillTimeline} />
       </div>
 
       {/* 2-col: Credit burn chart + Top domains */}
@@ -81,14 +121,14 @@ export function DashboardPage() {
           <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginBottom: 16 }}>
             most-scraped hostnames · last 24 h
           </div>
-          <TopDomainsChart />
+          <TopDomainsChart onRowClick={drillDomain} />
         </div>
       </div>
 
       {/* 2-col: Top clients + Recent errors */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <TopClientsTable />
-        <RecentErrorsCard />
+        <TopClientsTable onRowClick={drillClient} />
+        <RecentErrorsCard onRowClick={drillError} />
       </div>
 
       {/* Bull queues (full-width) */}

@@ -128,6 +128,28 @@ export const useStore = create((set, get) => ({
   activeCrawlsDetails: {},     // { [id]: { id, status, total, completed, creditsUsed, data, fetchedAt } }
   sessionCrawlIds: [],         // crawl IDs submitted via this browser session
 
+  // --- Reports page state (drill-down analytics) ---
+  // Filter bag is the source of truth for the Reports page. URL query
+  // params populate this; chart/table components read from the per-slot
+  // data fields. Not part of the main polling loop — fetched on filter
+  // change and optional auto-refresh.
+  reports: {
+    filters: { hours: 24 },
+    overview: null,
+    timeline: [],
+    distribution: null,
+    statusCodes: [],
+    topClients: [],
+    topDomains: [],
+    recentErrors: [],
+    heatmap: [],
+    operations: { rows: [], total: 0, limit: 50, offset: 0 },
+    detail: null,            // full row + optional crawl lifecycle
+    loading: false,
+    fetchError: null,
+    lastFetchedAt: null,
+  },
+
   // --- Transport state ---
   loading: false,
   error: null,
@@ -489,5 +511,114 @@ export const useStore = create((set, get) => ({
     } finally {
       set({ loading: false });
     }
+  },
+
+  // ============================================================
+  // Reports page (drill-down analytics)
+  // ============================================================
+
+  setReportFilters: (filters) => {
+    set(state => ({ reports: { ...state.reports, filters } }));
+  },
+
+  clearReportFilters: () => {
+    set(state => ({ reports: { ...state.reports, filters: { hours: 24 } } }));
+  },
+
+  /**
+   * Fan out to 8 filter-aware endpoints in parallel and merge results
+   * into the reports slice. Uses Promise.allSettled so a single failing
+   * query doesn't clobber the others. Missing results preserve last-known
+   * values (typical "show stale data instead of blank on transient error").
+   */
+  fetchReports: async () => {
+    const { filters } = get().reports;
+    // Serialize filter bag into a query string. Only include keys with
+    // truthy values so the URL/query params stay clean.
+    const cleaned = Object.fromEntries(
+      Object.entries(filters).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+    );
+    const q = new URLSearchParams(cleaned).toString();
+    const pageLimit = parseInt(filters.limit, 10) || 50;
+    const pageOffset = parseInt(filters.offset, 10) || 0;
+
+    const endpoints = [
+      ['overview',     `${API_BASE}/stats/proxy/overview?${q}`],
+      ['timeline',     `${API_BASE}/stats/proxy/timeline?${q}&bucket=${filters.bucket || '5min'}`],
+      ['distribution', `${API_BASE}/stats/proxy/distribution?${q}`],
+      ['statusCodes',  `${API_BASE}/stats/proxy/status-codes?${q}`],
+      ['topClients',   `${API_BASE}/stats/proxy/clients?${q}&limit=10`],
+      ['topDomains',   `${API_BASE}/stats/proxy/domains?${q}&limit=10`],
+      ['heatmap',      `${API_BASE}/stats/proxy/heatmap?${q}`],
+      ['operations',   `${API_BASE}/stats/proxy/recent?${q}&limit=${pageLimit}&offset=${pageOffset}`],
+    ];
+
+    set(state => ({ reports: { ...state.reports, loading: true } }));
+    const results = await Promise.allSettled(endpoints.map(([_, url]) => axios.get(url)));
+    const patch = {};
+    let anySuccess = false;
+    results.forEach((result, i) => {
+      const [slot] = endpoints[i];
+      if (result.status === 'fulfilled' && result.value.data.success) {
+        patch[slot] = result.value.data.data;
+        anySuccess = true;
+      }
+    });
+    patch.lastFetchedAt = new Date().toISOString();
+    patch.fetchError = anySuccess ? null : 'Reports data unreachable';
+    patch.loading = false;
+    set(state => ({ reports: { ...state.reports, ...patch } }));
+  },
+
+  /**
+   * Fetch a single operation row by ID plus, if it's a crawl-related op,
+   * the full lifecycle of rows sharing the same firecrawl_id. Populates
+   * reports.detail for the detail drawer.
+   */
+  fetchOperationDetail: async (id) => {
+    if (id == null) {
+      set(state => ({ reports: { ...state.reports, detail: null } }));
+      return;
+    }
+    try {
+      const r = await axios.get(`${API_BASE}/stats/proxy/operation/${id}`);
+      if (!r.data.success) {
+        set(state => ({ reports: { ...state.reports, detail: null } }));
+        return;
+      }
+      const detail = r.data.data;
+      // For crawl-related rows, also fetch the full lifecycle
+      if (detail.firecrawl_id && String(detail.operation_type).startsWith('crawl_')) {
+        try {
+          const lc = await axios.get(`${API_BASE}/stats/proxy/crawl/${detail.firecrawl_id}`);
+          if (lc.data.success) detail.lifecycle = lc.data.data;
+        } catch (_) { /* lifecycle is optional — drawer handles undefined */ }
+      }
+      set(state => ({ reports: { ...state.reports, detail } }));
+    } catch (err) {
+      set(state => ({
+        reports: { ...state.reports, detail: null, fetchError: err.message },
+      }));
+    }
+  },
+
+  closeOperationDetail: () => {
+    set(state => ({ reports: { ...state.reports, detail: null } }));
+  },
+
+  /**
+   * Trigger a CSV download of the current filter set. The backend
+   * streams the response with a Content-Disposition header so the
+   * browser handles it as a download. Hard-capped at 10k rows.
+   */
+  exportReportsCsv: () => {
+    const { filters } = get().reports;
+    const cleaned = Object.fromEntries(
+      Object.entries(filters).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+    );
+    const q = new URLSearchParams(cleaned).toString();
+    // Use window.location to trigger a browser download; no CORS issues
+    // because it's same-origin in both dev (via Vite proxy) and prod.
+    window.location.href = `${API_BASE}/stats/proxy/export.csv?${q}`;
   },
 }));
