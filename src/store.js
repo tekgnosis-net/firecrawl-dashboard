@@ -131,6 +131,14 @@ export const useStore = create((set, get) => ({
   // --- Transport state ---
   loading: false,
   error: null,
+  // Explicit flag: has loadSettings() successfully fetched from the server?
+  // The default `settings` object above has the SAME shape as a loaded
+  // one (empty strings + defaults), so components cannot detect "loaded
+  // vs default" from content. This flag is the signal. SettingsPage's
+  // form-init effect waits for this to become true before seeding the
+  // form, which prevents it from initializing from empty defaults and
+  // then ignoring the real values when they arrive (data-loss bug).
+  settingsLoaded: false,
   clearError: () => set({ error: null }),
 
   // ============================================================
@@ -141,7 +149,10 @@ export const useStore = create((set, get) => ({
     try {
       const r = await axios.get(`${API_BASE}/settings`);
       if (r.data.success) {
-        set({ settings: { ...get().settings, ...r.data.data } });
+        set({
+          settings: { ...get().settings, ...r.data.data },
+          settingsLoaded: true,
+        });
         get().startPolling(r.data.data.pollingInterval);
       }
     } catch (_) {}

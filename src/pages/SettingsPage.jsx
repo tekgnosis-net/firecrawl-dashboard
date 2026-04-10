@@ -39,6 +39,7 @@ const SNAPSHOT_RETENTION_OPTIONS = [
 
 const settingsSelector = (s) => ({
   settings: s.settings,
+  settingsLoaded: s.settingsLoaded,
   saveSettings: s.saveSettings,
   loading: s.loading,
   error: s.error,
@@ -132,7 +133,7 @@ function SaveIndicator({ status }) {
 }
 
 export function SettingsPage() {
-  const { settings, saveSettings, loading, error, clearError, runMaintenance, testNotification } = useStore(settingsSelector);
+  const { settings, settingsLoaded, saveSettings, loading, error, clearError, runMaintenance, testNotification } = useStore(settingsSelector);
   const [form, setForm] = useState({ ...settings });
   const [showKey, setShowKey] = useState(false);
   const [showBullKey, setShowBullKey] = useState(false);
@@ -152,25 +153,29 @@ export function SettingsPage() {
   formRef.current = form;
   const initialized = useRef(false);
 
-  // Initialize the form from the store ONCE, as soon as settings are
-  // populated after loadSettings() completes. After that, `form` is
-  // the source of truth for what the user is editing — we must NOT
-  // re-sync from `settings` on subsequent store updates, because the
-  // user may have typed characters during the debounce/save round-trip
-  // that haven't been persisted yet. Re-syncing would clobber them
-  // with a stale server-round-trip value. This ref guard enforces the
-  // one-shot behaviour.
+  // Initialize the form from the store ONCE, as soon as loadSettings()
+  // has successfully fetched the server-side values (signalled by the
+  // `settingsLoaded` flag in the store). After that, `form` is the
+  // source of truth for what the user is editing — we must NOT re-sync
+  // from `settings` on subsequent store updates, because the user may
+  // have typed characters during the debounce/save round-trip that
+  // haven't been persisted yet, and re-syncing would clobber them with
+  // a stale server-round-trip value.
+  //
+  // Using a dedicated `settingsLoaded` flag (rather than a content-based
+  // heuristic) is essential: the default store `settings` object has
+  // the same shape as a loaded one (empty strings + defaults), so
+  // content checks cannot reliably distinguish them. Without this
+  // flag, the form would initialize from empty defaults and then the
+  // real server values would be silently ignored — causing data loss
+  // when the user saved.
   useEffect(() => {
     if (initialized.current) return;
-    // Wait until the store has been populated by loadSettings() —
-    // heuristic: at least one non-empty core field present, or the
-    // dashboardPort default was returned (meaning GET /api/settings
-    // has completed).
-    if (settings && (settings.firecrawlUrl !== undefined || settings.dashboardPort)) {
+    if (settingsLoaded) {
       setForm(prev => ({ ...prev, ...settings }));
       initialized.current = true;
     }
-  }, [settings]);
+  }, [settingsLoaded, settings]);
 
   const fetchDbSize = useCallback(() => {
     axios.get('/api/maintenance/dbsize')
