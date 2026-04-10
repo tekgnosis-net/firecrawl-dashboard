@@ -37,7 +37,7 @@ function Field({ label, value, mono }) {
         color: 'var(--apple-text)',
         wordBreak: 'break-all',
       }}>
-        {value ?? <span style={{ color: 'var(--apple-text-secondary)' }}>\u2014</span>}
+        {value ?? <span style={{ color: 'var(--apple-text-secondary)' }}>—</span>}
       </div>
     </div>
   );

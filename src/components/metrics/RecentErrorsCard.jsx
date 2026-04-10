@@ -23,7 +23,7 @@ export function RecentErrorsCard({ errors: errorsProp, onRowClick }) {
       </div>
       {errors.length === 0 ? (
         <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--apple-text-secondary)', fontSize: 13 }}>
-          No errors \u2014 everything is working.
+          No errors — everything is working.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>

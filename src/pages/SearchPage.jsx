@@ -48,7 +48,7 @@ export function SearchPage() {
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Enter search query\u2026"
+              placeholder="Enter search query…"
               className="apple-input"
               required
             />

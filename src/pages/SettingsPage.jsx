@@ -127,8 +127,8 @@ function ConfirmPair({ onConfirm, onCancel }) {
 }
 
 function SaveIndicator({ status }) {
-  if (status === 'saving') return <span style={{ fontSize: 12, color: 'var(--apple-text-secondary)' }}>Saving\u2026</span>;
-  if (status === 'saved') return <span style={{ fontSize: 12, color: 'var(--apple-green)' }}>{'\u2713'} Saved</span>;
+  if (status === 'saving') return <span style={{ fontSize: 12, color: 'var(--apple-text-secondary)' }}>Saving…</span>;
+  if (status === 'saved') return <span style={{ fontSize: 12, color: 'var(--apple-green)' }}>✓ Saved</span>;
   return null;
 }
 
@@ -313,7 +313,7 @@ export function SettingsPage() {
                 value={form.apiKey || ''}
                 onChange={updateText('apiKey')}
                 className="apple-input"
-                placeholder="fc-\u2026 (leave empty if not required)"
+                placeholder="fc-… (leave empty if not required)"
                 style={{ flex: 1 }}
               />
               <button

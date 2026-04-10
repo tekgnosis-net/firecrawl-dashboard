@@ -193,7 +193,7 @@ export function CrawlPage() {
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontSize: 12, color: 'var(--apple-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
-                            {crawl.url || <code>{String(crawl.id).substring(0, 18)}\u2026</code>}
+                            {crawl.url || <code>{String(crawl.id).substring(0, 18)}…</code>}
                           </p>
                           <p style={{ fontSize: 10, color: 'var(--apple-text-secondary)', marginTop: 2 }}>
                             {crawl.createdAt ? formatDistanceToNow(new Date(crawl.createdAt), { addSuffix: true }) : crawl.source}
@@ -270,7 +270,7 @@ function CrawlDetail({ crawlId, onCancel }) {
   if (!detail) {
     return (
       <div style={{ background: 'var(--apple-surface)', borderRadius: '0 0 8px 8px', padding: 12, borderTop: '1px solid var(--apple-separator)' }}>
-        <p style={{ fontSize: 12, color: 'var(--apple-text-secondary)', textAlign: 'center', margin: 0 }}>Loading\u2026</p>
+        <p style={{ fontSize: 12, color: 'var(--apple-text-secondary)', textAlign: 'center', margin: 0 }}>Loading…</p>
       </div>
     );
   }

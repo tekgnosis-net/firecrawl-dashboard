@@ -54,7 +54,7 @@ export function RecentNotificationsCard() {
 
       {recent.length === 0 ? (
         <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--apple-text-secondary)', fontSize: 13 }}>
-          No notifications sent recently \u2014 everything healthy.
+          No notifications sent recently — everything healthy.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>

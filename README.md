@@ -56,6 +56,8 @@ The dashboard runs as **two containers** that share a SQLite volume — a UI ser
 services:
   dashboard:
     image: ghcr.io/tekgnosis-net/firecrawl-dashboard:latest
+    pull_policy: always
+    container_name: firecrawl-dashboard
     command: ["node", "server/dashboard.js"]
     ports:
       - "3001:3001"
@@ -64,6 +66,10 @@ services:
       - FIRECRAWL_URL=http://your-firecrawl-host:3002
       - DASHBOARD_PORT=3001
       - DB_PATH=/app/data/dashboard.db
+      # Cross-ping to the proxy container via Docker DNS. In standalone
+      # dev this defaults to localhost; in compose the dashboard and
+      # proxy are separate containers, so we point at the proxy service.
+      - PROXY_HOST=proxy
     volumes:
       - ./data:/app/data
     restart: on-failure
@@ -71,9 +77,14 @@ services:
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/healthz"]
       interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
   proxy:
     image: ghcr.io/tekgnosis-net/firecrawl-dashboard:latest
+    pull_policy: always
+    container_name: firecrawl-proxy
     command: ["node", "server/proxy.js"]
     ports:
       - "3101:3101"
@@ -89,6 +100,12 @@ services:
     depends_on:
       dashboard:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3101/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 ```
 
 ```bash

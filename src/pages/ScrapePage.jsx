@@ -116,7 +116,7 @@ export function ScrapePage() {
                 )}
                 {result.metadata?.creditsUsed !== undefined && (
                   <p style={{ fontSize: 11, color: 'var(--apple-text-secondary)' }}>
-                    {result.metadata.creditsUsed} credit(s) · scrapeId {result.metadata.scrapeId?.substring(0, 18)}\u2026
+                    {result.metadata.creditsUsed} credit(s) · scrapeId {result.metadata.scrapeId?.substring(0, 18)}…
                   </p>
                 )}
               </div>
