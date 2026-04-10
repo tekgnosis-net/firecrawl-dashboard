@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.0.3...v2.1.0) (2026-04-10)
+
+
+### Features
+
+* **reports:** URL-driven deep-dive page with drill-down, charts, CSV export ([#8](https://github.com/tekgnosis-net/firecrawl-dashboard/issues/8)) ([befdc33](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/befdc33a8ea2ddcf8ba986784ca241b7e913b2c8))
+
 ## [2.0.3](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.0.2...v2.0.3) (2026-04-10)
 
 
