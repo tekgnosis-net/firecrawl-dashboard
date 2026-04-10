@@ -1,3 +1,10 @@
+## [2.0.3](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.0.2...v2.0.3) (2026-04-10)
+
+
+### Bug Fixes
+
+* **settings:** init form from server values, not store defaults ([bacc0b0](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/bacc0b0e8616951e82720e1c4cef7ce163cb3501))
+
 ## [2.0.2](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.0.1...v2.0.2) (2026-04-10)
 
 
