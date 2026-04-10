@@ -11,14 +11,22 @@ import { MapPage } from './pages/MapPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 function App() {
-  const { loadSettings, fetchHealth, fetchStats, fetchCrawls, stopPolling } = useStore();
+  const loadSettings = useStore(s => s.loadSettings);
+  const fetchHealth = useStore(s => s.fetchHealth);
+  const fetchServerMetrics = useStore(s => s.fetchServerMetrics);
+  const fetchProxyStats = useStore(s => s.fetchProxyStats);
+  const fetchSnapshotHistory = useStore(s => s.fetchSnapshotHistory);
+  const stopPolling = useStore(s => s.stopPolling);
 
   useEffect(() => {
-    loadSettings(); // loads settings then starts polling
+    // loadSettings also starts the polling loop (which fires an initial fan-out)
+    loadSettings();
     fetchHealth();
-    fetchStats();
-    fetchCrawls();
+    fetchServerMetrics();
+    fetchProxyStats();
+    fetchSnapshotHistory();
     return () => stopPolling();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

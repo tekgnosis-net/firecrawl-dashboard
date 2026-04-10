@@ -2,15 +2,18 @@
   "name": "firecrawl-dashboard",
   "version": "1.5.0",
   "description": "A beautiful monitoring dashboard for self-hosted Firecrawl instances with Apple Design System styling",
-  "main": "server/index.js",
+  "main": "server/dashboard.js",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:server": "node server/index.js",
-    "dev:client": "vite",
+    "dev": "concurrently -n dash,prox,web -c blue,green,yellow \"npm:dev:dashboard\" \"npm:dev:proxy\" \"npm:dev:web\"",
+    "dev:dashboard": "node --watch server/dashboard.js",
+    "dev:proxy": "node --watch server/proxy.js",
+    "dev:web": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "node server/index.js"
+    "start": "node server/dashboard.js",
+    "start:dashboard": "node server/dashboard.js",
+    "start:proxy": "node server/proxy.js"
   },
   "keywords": [
     "firecrawl",

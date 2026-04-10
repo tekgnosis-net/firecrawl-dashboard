@@ -1,166 +1,107 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import axios from 'axios';
+// src/pages/DashboardPage.jsx
 import { useStore } from '../store';
-import { ActivityChart } from '../components/charts/ActivityChart';
-import { SuccessRateChart } from '../components/charts/SuccessRateChart';
+import { ServerHealthStrip } from '../components/metrics/ServerHealthStrip';
+import { QueueStatusCard } from '../components/metrics/QueueStatusCard';
+import { CreditsTokensCard } from '../components/metrics/CreditsTokensCard';
+import { ProxyOverviewCard } from '../components/metrics/ProxyOverviewCard';
+import { BullQueuesTable } from '../components/metrics/BullQueuesTable';
+import { ActiveCrawlsCard } from '../components/metrics/ActiveCrawlsCard';
+import { TopClientsTable } from '../components/metrics/TopClientsTable';
+import { RecentErrorsCard } from '../components/metrics/RecentErrorsCard';
+import { ProcessStatusCard } from '../components/metrics/ProcessStatusCard';
+import { RecentNotificationsCard } from '../components/metrics/RecentNotificationsCard';
+import { ProxyActivityChart } from '../components/charts/ProxyActivityChart';
+import { CreditsChart } from '../components/charts/CreditsChart';
 import { TopDomainsChart } from '../components/charts/TopDomainsChart';
 
 export function DashboardPage() {
-  const { health, stats, crawls, error, clearError } = useStore();
-  const [dailyData, setDailyData] = useState([]);
-  const [domainsData, setDomainsData] = useState([]);
-  const activeCrawls = (crawls || []).filter(c => ['pending', 'scraping'].includes(c.status));
+  const error = useStore(s => s.error);
+  const clearError = useStore(s => s.clearError);
+  const proxyFetchError = useStore(s => s.proxyStats.fetchError);
+  const serverFetchError = useStore(s => s.serverMetrics.fetchError);
 
-  useEffect(() => {
-    let alive = true;
-    axios.get('/api/stats/daily?days=7').then(r => { if (alive && r.data.success) setDailyData(r.data.data); }).catch(() => {});
-    axios.get('/api/stats/domains?limit=10').then(r => { if (alive && r.data.success) setDomainsData(r.data.data); }).catch(() => {});
-    return () => { alive = false; };
-  }, [stats]);
-
-  const successRate = (() => {
-    if (!stats) return 0;
-    const s = (stats.scrapes?.success || 0) + (stats.searches?.success || 0) + (stats.maps?.success || 0);
-    const t = (stats.scrapes?.total  || 0) + (stats.searches?.total  || 0) + (stats.maps?.total  || 0);
-    return t > 0 ? Math.round((s / t) * 100) : 0;
-  })();
+  const bannerText = error || proxyFetchError || serverFetchError;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--apple-text)' }}>Dashboard</h1>
-        <p style={{ fontSize: '13px', color: health?.status === 'healthy' ? 'var(--apple-green)' : 'var(--apple-red)', marginTop: '4px' }}>
-          {health?.status === 'healthy' ? '● Connected to Firecrawl' : '● Firecrawl unavailable'}
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--apple-text)' }}>Dashboard</h1>
+        <p style={{ fontSize: 13, color: 'var(--apple-text-secondary)', marginTop: 4 }}>
+          Live metrics from your self-hosted Firecrawl server
         </p>
       </div>
 
-      {error && (
-        <div className="apple-error-banner rounded-apple p-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '13px' }}>⚠️ {error}</span>
-          <button onClick={clearError} style={{ background: 'none', border: 'none', color: 'var(--apple-red)', cursor: 'pointer', fontSize: '13px' }}>Dismiss</button>
+      {bannerText && (
+        <div
+          className="apple-error-banner rounded-apple p-4"
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+        >
+          <span style={{ fontSize: 13 }}>{'\u26A0'} {bannerText}</span>
+          {error && (
+            <button
+              onClick={clearError}
+              style={{ background: 'none', border: 'none', color: 'var(--apple-red)', cursor: 'pointer', fontSize: 13 }}
+            >
+              Dismiss
+            </button>
+          )}
         </div>
       )}
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Crawls',  value: stats?.crawls?.total    ?? 0, sub: `${stats?.crawls?.active   ?? 0} active` },
-          { label: 'Scrapes',       value: stats?.scrapes?.total   ?? 0, sub: `${stats?.scrapes?.success ?? 0} successful` },
-          { label: 'Searches',      value: stats?.searches?.total  ?? 0, sub: `${stats?.searches?.success ?? 0} successful` },
-          { label: 'Success Rate',  value: `${successRate}%`,            sub: 'all operations', color: successRate >= 90 ? 'var(--apple-green)' : successRate >= 70 ? 'var(--apple-text)' : 'var(--apple-red)' },
-        ].map(({ label, value, sub, color }) => (
-          <div key={label} className="apple-card">
-            <p style={{ fontSize: '12px', color: 'var(--apple-text-secondary)', marginBottom: '6px' }}>{label}</p>
-            <p style={{ fontSize: '28px', fontWeight: '700', color: color || 'var(--apple-text)', lineHeight: 1 }}>{value}</p>
-            <p style={{ fontSize: '11px', color: 'var(--apple-text-secondary)', marginTop: '4px' }}>{sub}</p>
-          </div>
-        ))}
+      {/* Section 1: Live server health + process status */}
+      <ServerHealthStrip />
+
+      {/* 3-col grid: Queue status + Credits/Tokens + Proxy overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <QueueStatusCard />
+        <CreditsTokensCard />
+        <ProxyOverviewCard />
       </div>
 
-      {/* Activity Chart */}
+      {/* Proxy activity chart */}
       <div className="apple-card">
-        <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--apple-text)', marginBottom: '16px' }}>Activity — Last 7 Days</h3>
-        {dailyData.length > 0
-          ? <ActivityChart data={dailyData} />
-          : <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--apple-text-secondary)', fontSize: '13px' }}>
-              Trigger some scrapes, searches, or maps to see activity
-            </div>
-        }
+        <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Proxy activity</h3>
+        <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginBottom: 16 }}>
+          operations observed at /v1/*, /v2/*, /admin/* · last 24 h · 5-min buckets
+        </div>
+        <ProxyActivityChart />
       </div>
 
-      {/* Success Rate + Top Domains */}
+      {/* 2-col: Credit burn chart + Top domains */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="apple-card">
-          <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--apple-text)', marginBottom: '8px' }}>Success Rate</h3>
-          <SuccessRateChart stats={stats} />
-          {stats && <OperationBreakdown stats={stats} />}
+          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Credit usage</h3>
+          <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginBottom: 16 }}>
+            credits charged per bucket · last 7 days · hourly
+          </div>
+          <CreditsChart />
         </div>
         <div className="apple-card">
-          <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--apple-text)', marginBottom: '16px' }}>Top Domains</h3>
-          <TopDomainsChart data={domainsData} />
+          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Top domains</h3>
+          <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginBottom: 16 }}>
+            most-scraped hostnames · last 24 h
+          </div>
+          <TopDomainsChart />
         </div>
       </div>
 
-      {/* Live Crawl Progress */}
-      <div className="apple-card">
-        <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--apple-text)', marginBottom: '12px' }}>Live Crawl Jobs</h3>
-        {activeCrawls.length === 0
-          ? <p style={{ color: 'var(--apple-text-secondary)', fontSize: '13px', textAlign: 'center', padding: '12px 0' }}>No active crawls</p>
-          : <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {activeCrawls.map(crawl => <CrawlProgressRow key={crawl.id} crawl={crawl} />)}
-            </div>
-        }
+      {/* 2-col: Top clients + Recent errors */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <TopClientsTable />
+        <RecentErrorsCard />
       </div>
-    </div>
-  );
-}
 
-function OperationBreakdown({ stats }) {
-  const rows = [
-    { label: 'Scrapes',  success: stats.scrapes?.success ?? 0,  failed: stats.scrapes?.failed ?? 0,  to: '/scrape' },
-    { label: 'Searches', success: stats.searches?.success ?? 0, failed: stats.searches?.failed ?? 0, to: '/search' },
-    { label: 'Maps',     success: stats.maps?.success ?? 0,     failed: stats.maps?.failed ?? 0,     to: '/map' },
-  ];
-  const hasAny = rows.some(r => r.success + r.failed > 0);
-  if (!hasAny) return null;
+      {/* Bull queues (full-width) */}
+      <BullQueuesTable />
 
-  return (
-    <div style={{ marginTop: '12px', borderTop: '1px solid var(--apple-separator)', paddingTop: '12px' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-        <thead>
-          <tr style={{ color: 'var(--apple-text-secondary)' }}>
-            <th style={{ textAlign: 'left', fontWeight: '500', paddingBottom: '6px' }}>Type</th>
-            <th style={{ textAlign: 'right', fontWeight: '500', paddingBottom: '6px' }}>OK</th>
-            <th style={{ textAlign: 'right', fontWeight: '500', paddingBottom: '6px' }}>Fail</th>
-            <th style={{ textAlign: 'right', fontWeight: '500', paddingBottom: '6px' }}>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ label, success, failed, to }) => (
-            <tr key={label}>
-              <td style={{ padding: '4px 0' }}>
-                <Link to={to} style={{ color: 'var(--apple-blue)', textDecoration: 'none' }}>{label}</Link>
-              </td>
-              <td style={{ textAlign: 'right', color: 'var(--apple-green)', padding: '4px 0' }}>{success}</td>
-              <td style={{ textAlign: 'right', color: failed > 0 ? 'var(--apple-red)' : 'var(--apple-text-secondary)', padding: '4px 0' }}>{failed}</td>
-              <td style={{ textAlign: 'right', color: 'var(--apple-text)', padding: '4px 0' }}>{success + failed}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function CrawlProgressRow({ crawl }) {
-  const [detail, setDetail] = useState(null);
-
-  useEffect(() => {
-    const poll = async () => {
-      try { const r = await axios.get(`/api/crawls/${crawl.id}`); if (r.data.success) setDetail(r.data.data); } catch (_) {}
-    };
-    poll();
-    const timer = setInterval(poll, 5000);
-    return () => clearInterval(timer);
-  }, [crawl.id]);
-
-  const completed = detail?.completed || 0;
-  const rawTotal = detail?.total ?? crawl.max_pages ?? 0;
-  const pct = rawTotal > 0 ? Math.min(100, Math.round((completed / rawTotal) * 100)) : 0;
-  const total = rawTotal > 0 ? rawTotal : crawl.max_pages || '?';
-  const domain = (() => { try { return new URL(crawl.url).hostname; } catch { return crawl.url; } })();
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--apple-surface)', borderRadius: '8px', padding: '10px 12px' }}>
-      <span style={{ fontSize: '12px', color: 'var(--apple-text)', flex: '0 0 160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{domain}</span>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <div style={{ flex: 1, height: '4px', background: 'var(--apple-separator)', borderRadius: '2px', overflow: 'hidden' }}>
-          <div style={{ width: `${pct}%`, height: '100%', background: 'var(--apple-blue)', borderRadius: '2px', transition: 'width 0.5s' }} />
-        </div>
-        <span style={{ fontSize: '11px', color: 'var(--apple-text-secondary)', whiteSpace: 'nowrap' }}>{completed}/{total}</span>
+      {/* 2-col: Active crawls + Process status */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ActiveCrawlsCard />
+        <ProcessStatusCard />
       </div>
-      <span className="apple-badge" style={{ fontSize: '10px', flexShrink: 0 }}>{detail?.status || crawl.status}</span>
+
+      {/* Recent notifications (full width — visible proof that alerting is working) */}
+      <RecentNotificationsCard />
     </div>
   );
 }

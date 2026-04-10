@@ -1,19 +1,24 @@
-import { useState, useEffect } from 'react';
+// src/pages/ScrapePage.jsx
+import { useState } from 'react';
 import { useStore } from '../store';
-import { formatDistanceToNow } from 'date-fns';
+import { buildProxyUrl } from '../lib/proxyUrl';
 
 const FORMATS = ['markdown', 'html', 'links'];
 
 export function ScrapePage() {
-  const { scrape, fetchHistory, scrapeHistory, loading, error, clearError } = useStore();
+  const submitScrape = useStore(s => s.submitScrape);
+  const loading = useStore(s => s.loading);
+  const error = useStore(s => s.error);
+  const clearError = useStore(s => s.clearError);
+
   const [url, setUrl] = useState('');
   const [formats, setFormats] = useState(['markdown']);
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => { fetchHistory('scrape'); }, []);
-
-  const toggleFormat = (fmt) => setFormats(prev => prev.includes(fmt) ? prev.filter(f => f !== fmt) : [...prev, fmt]);
+  const toggleFormat = (fmt) => setFormats(prev =>
+    prev.includes(fmt) ? prev.filter(f => f !== fmt) : [...prev, fmt]
+  );
 
   const displayContent = () => {
     if (!result) return '';
@@ -26,86 +31,121 @@ export function ScrapePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (formats.length === 0) return;
-    try { const r = await scrape(url, formats); setResult(r.data); fetchHistory('scrape'); } catch (_) {}
+    try {
+      const r = await submitScrape(url, formats);
+      setResult(r.data);
+    } catch (_) {}
   };
 
   const handleCopy = () => {
     const c = displayContent();
     if (!c) return;
-    navigator.clipboard.writeText(c).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
+    navigator.clipboard.writeText(c)
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
+      .catch(() => {});
   };
-
-  const HistoryBadge = ({ success }) => (
-    <span className="apple-badge" style={{ fontSize: '10px', flexShrink: 0, background: success ? 'var(--apple-badge-success-bg)' : 'var(--apple-badge-error-bg)', color: success ? 'var(--apple-green)' : 'var(--apple-red)' }}>
-      {success ? 'Success' : 'Failed'}
-    </span>
-  );
 
   return (
     <div>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--apple-text)' }}>📄 Scrape</h1>
-        <p style={{ fontSize: '13px', color: 'var(--apple-text-secondary)', marginTop: '4px' }}>Extract content from a single URL</p>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--apple-text)' }}>{'\u{1F4C4}'} Scrape</h1>
+        <p style={{ fontSize: 13, color: 'var(--apple-text-secondary)', marginTop: 4 }}>
+          Extract content from a single URL. Request flows through the transparent proxy and appears in the dashboard's activity log.
+        </p>
       </div>
 
       {error && (
-        <div className="apple-error-banner rounded-apple p-4" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <span style={{ fontSize: '13px' }}>⚠️ {error}</span>
+        <div className="apple-error-banner rounded-apple p-4" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+          <span style={{ fontSize: 13 }}>{'\u26A0'} {error}</span>
           <button onClick={clearError} style={{ background: 'none', border: 'none', color: 'var(--apple-red)', cursor: 'pointer' }}>Dismiss</button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="apple-card">
-            <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--apple-text)', marginBottom: '12px' }}>New Scrape</h3>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <input type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://example.com/page" className="apple-input" required />
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {FORMATS.map(fmt => (
-                  <button key={fmt} type="button" onClick={() => toggleFormat(fmt)}
-                    style={{ padding: '4px 12px', borderRadius: '6px', border: '1px solid', borderColor: formats.includes(fmt) ? 'var(--apple-blue)' : 'var(--apple-separator)', background: formats.includes(fmt) ? 'var(--apple-blue)' : 'transparent', color: formats.includes(fmt) ? 'white' : 'var(--apple-text-secondary)', fontSize: '12px', cursor: 'pointer', textTransform: 'capitalize' }}>
-                    {fmt}
-                  </button>
-                ))}
-              </div>
-              <button type="submit" className="apple-button" disabled={loading || formats.length === 0}>{loading ? 'Scraping…' : 'Scrape'}</button>
-            </form>
-          </div>
-
-          {result && (
-            <div className="apple-card" style={{ flex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                <div>
-                  <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--apple-text)', margin: 0 }}>Result</h3>
-                  {result.metadata?.title && <p style={{ fontSize: '12px', color: 'var(--apple-text-secondary)', marginTop: '2px' }}>{result.metadata.title}</p>}
-                </div>
-                <button onClick={handleCopy} style={{ fontSize: '12px', color: 'var(--apple-blue)', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>{copied ? '✓ Copied' : 'Copy'}</button>
-              </div>
-              <pre style={{ background: '#1D1D1F', borderRadius: '8px', padding: '12px', fontSize: '11px', color: '#F5F5F7', overflowY: 'auto', maxHeight: '360px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'monospace', margin: 0 }}>
-                {displayContent()}
-              </pre>
-            </div>
-          )}
-        </div>
-
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 900 }}>
         <div className="apple-card">
-          <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--apple-text)', marginBottom: '12px' }}>History</h3>
-          {scrapeHistory.length === 0
-            ? <p style={{ color: 'var(--apple-text-secondary)', fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>No scrapes yet</p>
-            : <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '600px', overflowY: 'auto' }}>
-                {scrapeHistory.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--apple-surface)', borderRadius: '8px', padding: '8px 10px', gap: '8px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: '12px', color: 'var(--apple-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{item.url}</p>
-                      <p style={{ fontSize: '10px', color: 'var(--apple-text-secondary)', marginTop: '2px' }}>{formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}</p>
-                    </div>
-                    <HistoryBadge success={item.success} />
-                  </div>
-                ))}
-              </div>
-          }
+          <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>New scrape</h3>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <input
+              type="url"
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              placeholder="https://example.com/page"
+              className="apple-input"
+              required
+            />
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {FORMATS.map(fmt => (
+                <button
+                  key={fmt}
+                  type="button"
+                  onClick={() => toggleFormat(fmt)}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: 6,
+                    border: '1px solid',
+                    borderColor: formats.includes(fmt) ? 'var(--apple-blue)' : 'var(--apple-separator)',
+                    background: formats.includes(fmt) ? 'var(--apple-blue)' : 'transparent',
+                    color: formats.includes(fmt) ? 'white' : 'var(--apple-text-secondary)',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    textTransform: 'capitalize',
+                  }}
+                >
+                  {fmt}
+                </button>
+              ))}
+            </div>
+            <button type="submit" className="apple-button" disabled={loading || formats.length === 0}>
+              {loading ? 'Scraping\u2026' : 'Scrape'}
+            </button>
+          </form>
+          <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginTop: 10 }}>
+            POST {'\u2192'} {buildProxyUrl('/v1/scrape')}
+          </div>
         </div>
+
+        {result && (
+          <div className="apple-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+              <div>
+                <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Result</h3>
+                {result.metadata?.title && (
+                  <p style={{ fontSize: 12, color: 'var(--apple-text-secondary)', marginTop: 2 }}>
+                    {result.metadata.title}
+                  </p>
+                )}
+                {result.metadata?.creditsUsed !== undefined && (
+                  <p style={{ fontSize: 11, color: 'var(--apple-text-secondary)' }}>
+                    {result.metadata.creditsUsed} credit(s) · scrapeId {result.metadata.scrapeId?.substring(0, 18)}\u2026
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={handleCopy}
+                style={{ fontSize: 12, color: 'var(--apple-blue)', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+              >
+                {copied ? '\u2713 Copied' : 'Copy'}
+              </button>
+            </div>
+            <pre
+              style={{
+                background: '#1D1D1F',
+                borderRadius: 8,
+                padding: 12,
+                fontSize: 11,
+                color: '#F5F5F7',
+                overflowY: 'auto',
+                maxHeight: 360,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                margin: 0,
+              }}
+            >
+              {displayContent()}
+            </pre>
+          </div>
+        )}
       </div>
     </div>
   );
