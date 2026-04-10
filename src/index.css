@@ -74,6 +74,12 @@
   100% { background-position: -200% 0; }
 }
 
+/* Pulsing dot for the Settings save toast during an in-flight save. */
+@keyframes saveToastPulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1); }
+}
+
 @layer base {
   html {
     background-color: var(--apple-bg);

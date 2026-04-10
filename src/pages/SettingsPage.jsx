@@ -126,10 +126,68 @@ function ConfirmPair({ onConfirm, onCancel }) {
   );
 }
 
-function SaveIndicator({ status }) {
-  if (status === 'saving') return <span style={{ fontSize: 12, color: 'var(--apple-text-secondary)' }}>Saving…</span>;
-  if (status === 'saved') return <span style={{ fontSize: 12, color: 'var(--apple-green)' }}>✓ Saved</span>;
-  return null;
+// Floating save feedback for the Settings page. Fixed-position bottom-
+// right so it stays in view regardless of scroll depth — the previous
+// in-card indicator was invisible once the user scrolled past the
+// Connection card, leaving no feedback when editing Retention or
+// Notifications. Uses role=status + aria-live=polite so screen readers
+// announce the save events. The wrapper is always rendered so the
+// fade-in/fade-out transition plays cleanly; when status is null the
+// toast becomes fully transparent AND pointer-events:none so it
+// doesn't intercept clicks on the UI behind it.
+function SaveToast({ status }) {
+  const visible = status === 'saving' || status === 'saved';
+  const isSaved = status === 'saved';
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      style={{
+        position: 'fixed',
+        bottom: 24,
+        right: 24,
+        zIndex: 1050,
+        padding: '10px 16px',
+        borderRadius: 10,
+        background: 'var(--apple-card)',
+        border: `1px solid ${isSaved ? 'var(--apple-green)' : 'var(--apple-separator)'}`,
+        color: isSaved ? 'var(--apple-green)' : 'var(--apple-text)',
+        fontSize: 13,
+        fontWeight: 600,
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(8px)',
+        transition: 'opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+        pointerEvents: visible ? 'auto' : 'none',
+      }}
+    >
+      {status === 'saving' && (
+        <>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: 'var(--apple-blue)',
+              animation: 'saveToastPulse 1.2s ease-in-out infinite',
+            }}
+          />
+          <span>Saving…</span>
+        </>
+      )}
+      {isSaved && (
+        <>
+          <span aria-hidden="true">✓</span>
+          <span>Saved</span>
+        </>
+      )}
+    </div>
+  );
 }
 
 export function SettingsPage() {
@@ -296,7 +354,7 @@ export function SettingsPage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        <Card title="Connection" right={<SaveIndicator status={saveStatus} />}>
+        <Card title="Connection">
           <Field label="Firecrawl URL" hint="The remote Firecrawl server the proxy forwards to.">
             <input
               type="url"
@@ -719,6 +777,11 @@ curl -X POST ${proxyBaseUrl}/v1/scrape \\
           </button>
         )}
       </div>
+
+      {/* Fixed-position save feedback toast. Stays visible on scroll so
+          users editing controls far below the fold still get a clear
+          signal that their auto-save landed. */}
+      <SaveToast status={saveStatus} />
     </div>
   );
 }
