@@ -1,3 +1,38 @@
+# [2.0.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.5.1...v2.0.0) (2026-04-10)
+
+
+### chore
+
+* mark v1.5.1 backend rebuild as a breaking change ([a3953d1](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/a3953d19a465344066e820d9b5c962df3aab241c))
+
+
+### BREAKING CHANGES
+
+* This release contains a complete backend rebuild into
+a two-process transparent Firecrawl proxy. Operators upgrading from
+v1.5.0 or earlier MUST:
+
+1. Update docker-compose.yml: publish ports 3001 (dashboard UI) and
+   3101 (proxy) instead of the old 3003:3000 mapping. Two services
+   are now declared, sharing a SQLite volume.
+
+2. Reconfigure Firecrawl clients (SDK / curl / other tools) to point
+   at the new proxy URL `http://<host>:3101` instead of directly at
+   the Firecrawl server. Paths, methods, bodies, and headers are
+   unchanged.
+
+3. Accept that the schema migration drops the legacy activity tables
+   (`scrapes`, `searches`, `maps`, `crawls`) — this data cannot be
+   recovered after upgrade. Pre-upgrade backup:
+   `sqlite3 dashboard.db ".dump scrapes" > pre-upgrade.sql`
+
+4. Note that the old /api/scrape, /api/crawls, /api/search, /api/map,
+   /api/history/* routes are removed. Operation submissions now flow
+   through the transparent proxy at /v1/*, /v2/*, /admin/* instead.
+
+See the 1.5.1 CHANGELOG entry and the commit message on 17d45b88 for
+the full scope of what changed.
+
 ## [1.5.1](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v1.5.0...v1.5.1) (2026-04-10)
 
 
