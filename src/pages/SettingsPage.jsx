@@ -71,6 +71,66 @@ const PRIORITY_OPTIONS = [
   { label: '5 — urgent',  value: 5 },
 ];
 
+// --- Helper components at MODULE SCOPE ---
+// These used to live inside SettingsPage() which meant React created
+// fresh component references on every render. That made React treat
+// <Field>/<Card>/etc. as different component types each render, which
+// unmounted and remounted the DOM subtree — destroying input focus on
+// every keystroke (the user could only type one character before the
+// input lost focus). Lifting them to module scope gives them stable
+// references so React reconciles the inputs in place.
+
+function Field({ label, hint, children }) {
+  return (
+    <div>
+      <label style={{ fontSize: 12, color: 'var(--apple-text-secondary)', display: 'block', marginBottom: 6 }}>
+        {label}
+      </label>
+      {children}
+      {hint && (
+        <p style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginTop: 4 }}>{hint}</p>
+      )}
+    </div>
+  );
+}
+
+function Card({ title, right, children }) {
+  return (
+    <div className="apple-card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>{title}</h3>
+        {right}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ConfirmPair({ onConfirm, onCancel }) {
+  return (
+    <div style={{ display: 'flex', gap: 8 }}>
+      <button
+        onClick={onConfirm}
+        style={{ padding: '6px 14px', borderRadius: 6, background: 'var(--apple-red)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 12 }}
+      >
+        Confirm
+      </button>
+      <button
+        onClick={onCancel}
+        style={{ padding: '6px 14px', borderRadius: 6, background: 'var(--apple-surface)', color: 'var(--apple-text)', border: '1px solid var(--apple-separator)', cursor: 'pointer', fontSize: 12 }}
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
+
+function SaveIndicator({ status }) {
+  if (status === 'saving') return <span style={{ fontSize: 12, color: 'var(--apple-text-secondary)' }}>Saving\u2026</span>;
+  if (status === 'saved') return <span style={{ fontSize: 12, color: 'var(--apple-green)' }}>{'\u2713'} Saved</span>;
+  return null;
+}
+
 export function SettingsPage() {
   const { settings, saveSettings, loading, error, clearError, runMaintenance, testNotification } = useStore(settingsSelector);
   const [form, setForm] = useState({ ...settings });
@@ -90,10 +150,26 @@ export function SettingsPage() {
   const debounceRef = useRef(null);
   const formRef = useRef(form);
   formRef.current = form;
+  const initialized = useRef(false);
 
-  // Sync form from store when settings change (e.g. initial load)
+  // Initialize the form from the store ONCE, as soon as settings are
+  // populated after loadSettings() completes. After that, `form` is
+  // the source of truth for what the user is editing — we must NOT
+  // re-sync from `settings` on subsequent store updates, because the
+  // user may have typed characters during the debounce/save round-trip
+  // that haven't been persisted yet. Re-syncing would clobber them
+  // with a stale server-round-trip value. This ref guard enforces the
+  // one-shot behaviour.
   useEffect(() => {
-    setForm(prev => ({ ...prev, ...settings }));
+    if (initialized.current) return;
+    // Wait until the store has been populated by loadSettings() —
+    // heuristic: at least one non-empty core field present, or the
+    // dashboardPort default was returned (meaning GET /api/settings
+    // has completed).
+    if (settings && (settings.firecrawlUrl !== undefined || settings.dashboardPort)) {
+      setForm(prev => ({ ...prev, ...settings }));
+      initialized.current = true;
+    }
   }, [settings]);
 
   const fetchDbSize = useCallback(() => {
@@ -195,51 +271,6 @@ export function SettingsPage() {
       .catch(() => {});
   };
 
-  const Field = ({ label, hint, children }) => (
-    <div>
-      <label style={{ fontSize: 12, color: 'var(--apple-text-secondary)', display: 'block', marginBottom: 6 }}>
-        {label}
-      </label>
-      {children}
-      {hint && (
-        <p style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginTop: 4 }}>{hint}</p>
-      )}
-    </div>
-  );
-
-  const Card = ({ title, right, children }) => (
-    <div className="apple-card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>{title}</h3>
-        {right}
-      </div>
-      {children}
-    </div>
-  );
-
-  const ConfirmPair = ({ onConfirm }) => (
-    <div style={{ display: 'flex', gap: 8 }}>
-      <button
-        onClick={onConfirm}
-        style={{ padding: '6px 14px', borderRadius: 6, background: 'var(--apple-red)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 12 }}
-      >
-        Confirm
-      </button>
-      <button
-        onClick={() => setConfirmAction(null)}
-        style={{ padding: '6px 14px', borderRadius: 6, background: 'var(--apple-surface)', color: 'var(--apple-text)', border: '1px solid var(--apple-separator)', cursor: 'pointer', fontSize: 12 }}
-      >
-        Cancel
-      </button>
-    </div>
-  );
-
-  const SaveIndicator = () => {
-    if (saveStatus === 'saving') return <span style={{ fontSize: 12, color: 'var(--apple-text-secondary)' }}>Saving\u2026</span>;
-    if (saveStatus === 'saved') return <span style={{ fontSize: 12, color: 'var(--apple-green)' }}>{'\u2713'} Saved</span>;
-    return null;
-  };
-
   const proxyBaseUrl = getProxyBaseUrl();
 
   return (
@@ -260,7 +291,7 @@ export function SettingsPage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        <Card title="Connection" right={<SaveIndicator />}>
+        <Card title="Connection" right={<SaveIndicator status={saveStatus} />}>
           <Field label="Firecrawl URL" hint="The remote Firecrawl server the proxy forwards to.">
             <input
               type="url"
@@ -673,7 +704,7 @@ curl -X POST ${proxyBaseUrl}/v1/scrape \\
           </div>
         )}
         {confirmAction === 'maintenance' ? (
-          <ConfirmPair onConfirm={handleMaintenance} />
+          <ConfirmPair onConfirm={handleMaintenance} onCancel={() => setConfirmAction(null)} />
         ) : (
           <button
             onClick={() => setConfirmAction('maintenance')}
