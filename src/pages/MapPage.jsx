@@ -1,7 +1,20 @@
 // src/pages/MapPage.jsx
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../store';
 import { buildProxyUrl } from '../lib/proxyUrl';
+
+// Module-scope helper — defined outside the component so its identity is stable
+// across renders. Nested helper components/functions inside MapPage would be fine,
+// but keeping it here also dodges any accidental focus-loss traps (see CLAUDE.md
+// v2.0.3 inline-component note).
+function parseUrl(href) {
+  try {
+    const u = new URL(href);
+    return { host: u.host, path: (u.pathname + u.search + u.hash) || '/' };
+  } catch {
+    return { host: '', path: href };
+  }
+}
 
 export function MapPage() {
   const submitMap = useStore(s => s.submitMap);
@@ -13,8 +26,31 @@ export function MapPage() {
   const [search, setSearch] = useState('');
   const [results, setResults] = useState(null);
 
+  // Client-side filter — distinct from the server-side `search` param above.
+  // Lets users narrow an already-returned result set without re-running the map.
+  const [filter, setFilter] = useState('');
+  const [debouncedFilter, setDebouncedFilter] = useState('');
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedFilter(filter), 120);
+    return () => clearTimeout(t);
+  }, [filter]);
+
+  const filteredResults = useMemo(() => {
+    if (!results) return [];
+    const q = debouncedFilter.trim().toLowerCase();
+    if (!q) return results;
+    return results.filter(h => h.toLowerCase().includes(q));
+  }, [results, debouncedFilter]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Clear both sources of filter state synchronously. `setFilter('')` alone
+    // leaves the previous value in `debouncedFilter` until the 120 ms timer
+    // fires — if the /v2/map response lands sooner (cached / small site) the
+    // new results would render one frame through the stale query.
+    setFilter('');
+    setDebouncedFilter('');
     try {
       const options = search ? { search } : {};
       const r = await submitMap(url, options);
@@ -71,39 +107,82 @@ export function MapPage() {
 
         {results !== null && (
           <div className="apple-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 12 }}>
               <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Discovered URLs</h3>
-              <span className="apple-badge" style={{ fontSize: 11 }}>{results.length}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="apple-badge" style={{ fontSize: 11 }}>
+                  {filteredResults.length === results.length
+                    ? results.length
+                    : `${filteredResults.length} / ${results.length}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Swallow rejections: writeText can reject when the page
+                    // is not in a secure context or clipboard permission is
+                    // denied. Optional chaining handles the no-clipboard-API case.
+                    navigator.clipboard?.writeText(filteredResults.join('\n')).catch(() => {});
+                  }}
+                  className="apple-button"
+                  style={{ fontSize: 12, padding: '4px 10px' }}
+                  disabled={filteredResults.length === 0}
+                >
+                  Copy all
+                </button>
+              </div>
             </div>
             {results.length === 0 ? (
               <p style={{ color: 'var(--apple-text-secondary)', fontSize: 13, textAlign: 'center', padding: '12px 0' }}>
                 No URLs found
               </p>
             ) : (
-              <div style={{ maxHeight: 440, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {results.map((href, i) => (
-                  <a
-                    key={i}
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      fontSize: 11,
-                      color: 'var(--apple-blue)',
-                      padding: '5px 8px',
-                      borderRadius: 5,
-                      background: 'var(--apple-surface)',
-                      display: 'block',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      textDecoration: 'none',
-                    }}
-                  >
-                    {href}
-                  </a>
-                ))}
-              </div>
+              <>
+                <input
+                  type="text"
+                  value={filter}
+                  onChange={e => setFilter(e.target.value)}
+                  placeholder={'Filter results\u2026'}
+                  className="apple-input"
+                  style={{ marginBottom: 10 }}
+                />
+                {filteredResults.length === 0 ? (
+                  <p style={{ color: 'var(--apple-text-secondary)', fontSize: 13, textAlign: 'center', padding: '16px 0' }}>
+                    No URLs match &ldquo;{filter}&rdquo;. Try a shorter query or clear the filter.
+                  </p>
+                ) : (
+                  <div style={{ maxHeight: 600, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {filteredResults.map((href) => {
+                      const { host, path } = parseUrl(href);
+                      return (
+                        <a
+                          key={href}
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={href}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            background: 'var(--apple-surface)',
+                            border: '1px solid var(--apple-separator)',
+                            display: 'block',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          {host && (
+                            <div style={{ fontSize: 12, color: 'var(--apple-text-secondary)', fontWeight: 500 }}>
+                              {host}
+                            </div>
+                          )}
+                          <div style={{ fontSize: 13, color: 'var(--apple-blue)', fontWeight: 500, wordBreak: 'break-all', lineHeight: 1.35 }}>
+                            {path}
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
