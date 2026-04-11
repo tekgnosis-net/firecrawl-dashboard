@@ -45,7 +45,12 @@ export function MapPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Clear both sources of filter state synchronously. `setFilter('')` alone
+    // leaves the previous value in `debouncedFilter` until the 120 ms timer
+    // fires — if the /v2/map response lands sooner (cached / small site) the
+    // new results would render one frame through the stale query.
     setFilter('');
+    setDebouncedFilter('');
     try {
       const options = search ? { search } : {};
       const r = await submitMap(url, options);
@@ -112,7 +117,12 @@ export function MapPage() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => navigator.clipboard?.writeText(filteredResults.join('\n'))}
+                  onClick={() => {
+                    // Swallow rejections: writeText can reject when the page
+                    // is not in a secure context or clipboard permission is
+                    // denied. Optional chaining handles the no-clipboard-API case.
+                    navigator.clipboard?.writeText(filteredResults.join('\n')).catch(() => {});
+                  }}
                   className="apple-button"
                   style={{ fontSize: 12, padding: '4px 10px' }}
                   disabled={filteredResults.length === 0}
@@ -141,11 +151,11 @@ export function MapPage() {
                   </p>
                 ) : (
                   <div style={{ maxHeight: 600, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {filteredResults.map((href, i) => {
+                    {filteredResults.map((href) => {
                       const { host, path } = parseUrl(href);
                       return (
                         <a
-                          key={i}
+                          key={href}
                           href={href}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -159,9 +169,11 @@ export function MapPage() {
                             textDecoration: 'none',
                           }}
                         >
-                          <div style={{ fontSize: 12, color: 'var(--apple-text-secondary)', fontWeight: 500 }}>
-                            {host}
-                          </div>
+                          {host && (
+                            <div style={{ fontSize: 12, color: 'var(--apple-text-secondary)', fontWeight: 500 }}>
+                              {host}
+                            </div>
+                          )}
                           <div style={{ fontSize: 13, color: 'var(--apple-blue)', fontWeight: 500, wordBreak: 'break-all', lineHeight: 1.35 }}>
                             {path}
                           </div>
