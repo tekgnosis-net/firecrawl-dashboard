@@ -1,3 +1,10 @@
+## [2.3.1](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.3.0...v2.3.1) (2026-04-11)
+
+
+### Bug Fixes
+
+* **map:** make large-site results readable and filterable ([#9](https://github.com/tekgnosis-net/firecrawl-dashboard/issues/9)) ([097c840](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/097c84056968b84e68bc5fc01c71b5c1a1a3d183))
+
 # [2.3.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.2.0...v2.3.0) (2026-04-10)
 
 
