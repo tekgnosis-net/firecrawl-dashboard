@@ -1,3 +1,10 @@
+## [2.3.2](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.3.1...v2.3.2) (2026-04-17)
+
+
+### Bug Fixes
+
+* **metrics:** render self-hosted-unavailable state for credit/token usage ([0d0f279](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/0d0f2790feaa1b4ef7523ecc8d25f2ca903c1669))
+
 ## [2.3.1](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.3.0...v2.3.1) (2026-04-11)
 
 
