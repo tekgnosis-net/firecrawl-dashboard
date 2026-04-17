@@ -259,6 +259,14 @@ app.get('/api/firecrawl/credit-usage', async (req, res) => {
     const data = await internalGet(db, '/v1/team/credit-usage');
     res.json({ success: true, data: data.data });
   } catch (err) {
+    // A persistent upstream 5xx on /v1/team/credit-usage almost always means
+    // the Firecrawl instance was built without the Autumn billing integration
+    // (typical on self-hosted). Treat as "not available" rather than "failed"
+    // so the UI can render a tidy disabled state and the snapshot poller
+    // stops flagging it as an outage.
+    if (err.status >= 500 && err.status < 600) {
+      return res.json({ success: true, data: null, reason: 'unavailable' });
+    }
     res.status(502).json({ success: false, error: err.message });
   }
 });
@@ -267,6 +275,9 @@ app.get('/api/firecrawl/token-usage', async (req, res) => {
     const data = await internalGet(db, '/v1/team/token-usage');
     res.json({ success: true, data: data.data });
   } catch (err) {
+    if (err.status >= 500 && err.status < 600) {
+      return res.json({ success: true, data: null, reason: 'unavailable' });
+    }
     res.status(502).json({ success: false, error: err.message });
   }
 });

@@ -94,7 +94,9 @@ export const useStore = create((set, get) => ({
   serverMetrics: {
     queueStatus: null,
     creditUsage: null,
+    creditUsageReason: null,
     tokenUsage: null,
+    tokenUsageReason: null,
     activeCrawls: null,
     bullQueues: null,
     bullQueuesReason: null,
@@ -295,6 +297,12 @@ export const useStore = create((set, get) => ({
         } else if (slot === 'redisHealth') {
           if (data === null) { patch.redisHealthReason = reason || 'not_configured'; }
           else { patch.redisHealth = data; patch.redisHealthReason = null; }
+        } else if (slot === 'creditUsage') {
+          if (data === null) { patch.creditUsageReason = reason || 'unavailable'; }
+          else { patch.creditUsage = data; patch.creditUsageReason = null; }
+        } else if (slot === 'tokenUsage') {
+          if (data === null) { patch.tokenUsageReason = reason || 'unavailable'; }
+          else { patch.tokenUsage = data; patch.tokenUsageReason = null; }
         } else {
           patch[slot] = data;
         }

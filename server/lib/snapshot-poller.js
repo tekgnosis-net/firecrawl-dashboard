@@ -31,6 +31,19 @@ export function createSnapshotPoller(db) {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
+  // Tracks endpoints that consistently return 5xx (typically billing endpoints
+  // on self-hosted Firecrawl without Autumn). Once classified as "unavailable",
+  // we stop logging their absence as a failure on every tick — the row is
+  // still written with NULLs for those columns so trend charts show gaps.
+  const unavailable = new Set();
+
+  function isUpstreamUnavailable(settled) {
+    return settled.status === 'rejected'
+        && settled.reason?.kind === 'http'
+        && settled.reason?.status >= 500
+        && settled.reason?.status < 600;
+  }
+
   async function captureSnapshot() {
     const timestamp = new Date().toISOString();
     const results = await Promise.allSettled([
@@ -44,7 +57,22 @@ export function createSnapshotPoller(db) {
     const credit = creditRes.status === 'fulfilled' ? creditRes.value?.data : null;
     const token = tokenRes.status === 'fulfilled' ? tokenRes.value?.data : null;
 
-    const allOk = queue && credit && token;
+    if (isUpstreamUnavailable(creditRes) && !unavailable.has('credit-usage')) {
+      unavailable.add('credit-usage');
+      console.log('[snapshot-poller] /v1/team/credit-usage is unavailable on this deployment (5xx); suppressing further failure logs');
+    }
+    if (isUpstreamUnavailable(tokenRes) && !unavailable.has('token-usage')) {
+      unavailable.add('token-usage');
+      console.log('[snapshot-poller] /v1/team/token-usage is unavailable on this deployment (5xx); suppressing further failure logs');
+    }
+
+    // A snapshot is "OK" if every endpoint that is *expected* to work did. An
+    // endpoint classified as persistently unavailable no longer counts against
+    // fetch_ok — otherwise every row would be marked partial forever.
+    const queueOk  = !!queue;
+    const creditOk = !!credit || unavailable.has('credit-usage');
+    const tokenOk  = !!token  || unavailable.has('token-usage');
+    const allOk = queueOk && creditOk && tokenOk;
 
     try {
       insert.run(
@@ -67,9 +95,9 @@ export function createSnapshotPoller(db) {
 
     if (!allOk) {
       const failed = [];
-      if (!queue)  failed.push('queue-status');
-      if (!credit) failed.push('credit-usage');
-      if (!token)  failed.push('token-usage');
+      if (!queueOk)  failed.push('queue-status');
+      if (!creditOk) failed.push('credit-usage');
+      if (!tokenOk)  failed.push('token-usage');
       console.warn(`[snapshot-poller] partial snapshot at ${timestamp}; failed: ${failed.join(', ')}`);
     }
   }

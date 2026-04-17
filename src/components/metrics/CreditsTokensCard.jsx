@@ -40,13 +40,30 @@ function formatBillingRange(start, end) {
   }
 }
 
+function UnavailableRow({ label }) {
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+        <div style={{ fontSize: 13, color: 'var(--apple-text-secondary)' }}>{label}</div>
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--apple-text-tertiary, var(--apple-text-secondary))' }}>
+          Not available
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function CreditsTokensCard() {
   const credit = useStore(s => s.serverMetrics.creditUsage);
   const token = useStore(s => s.serverMetrics.tokenUsage);
+  const creditReason = useStore(s => s.serverMetrics.creditUsageReason);
+  const tokenReason = useStore(s => s.serverMetrics.tokenUsageReason);
 
   const billingRange = credit?.billing_period_start && credit?.billing_period_end
     ? formatBillingRange(credit.billing_period_start, credit.billing_period_end)
     : null;
+
+  const bothUnavailable = creditReason && tokenReason;
 
   return (
     <div className="apple-card">
@@ -54,21 +71,34 @@ export function CreditsTokensCard() {
       <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginBottom: 16 }}>
         /v1/team/credit-usage · /v1/team/token-usage
       </div>
-      <ProgressRow
-        label="Credits"
-        remaining={credit?.remaining_credits}
-        total={credit?.plan_credits}
-        fillColor="var(--apple-blue)"
-      />
-      <ProgressRow
-        label="Tokens"
-        remaining={token?.remaining_tokens}
-        total={token?.plan_tokens}
-        fillColor="var(--apple-green)"
-      />
+      {creditReason ? (
+        <UnavailableRow label="Credits" />
+      ) : (
+        <ProgressRow
+          label="Credits"
+          remaining={credit?.remaining_credits}
+          total={credit?.plan_credits}
+          fillColor="var(--apple-blue)"
+        />
+      )}
+      {tokenReason ? (
+        <UnavailableRow label="Tokens" />
+      ) : (
+        <ProgressRow
+          label="Tokens"
+          remaining={token?.remaining_tokens}
+          total={token?.plan_tokens}
+          fillColor="var(--apple-green)"
+        />
+      )}
       {billingRange && (
         <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginTop: 8 }}>
           Billing period: {billingRange}
+        </div>
+      )}
+      {bothUnavailable && (
+        <div style={{ fontSize: 11, color: 'var(--apple-text-secondary)', marginTop: 8 }}>
+          These endpoints require Firecrawl's billing integration; not available on this self-hosted deployment.
         </div>
       )}
     </div>
