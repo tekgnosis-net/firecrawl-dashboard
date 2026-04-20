@@ -29,8 +29,8 @@
     "url": "https://github.com/tekgnosis-net/firecrawl-dashboard"
   },
   "dependencies": {
-    "axios": "^1.15.0",
-    "better-sqlite3": "^12.8.0",
+    "axios": "^1.15.1",
+    "better-sqlite3": "^12.9.0",
     "cors": "^2.8.5",
     "express": "^5.2.1"
   },
