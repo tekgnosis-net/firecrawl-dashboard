@@ -21,6 +21,11 @@ import { useStore } from '../store.js';
  * without a page reload.
  */
 export function getProxyBaseUrl() {
+  const publicUrl = useStore.getState().settings?.proxyPublicUrl?.trim();
+  if (publicUrl) {
+    return publicUrl.replace(/\/+$/, '');
+  }
+
   const proxyPort = useStore.getState().settings?.proxyPort || 3101;
   const protocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
   const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';

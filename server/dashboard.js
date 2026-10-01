@@ -96,7 +96,7 @@ app.get('/api/health', async (req, res) => {
   const headers = apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {};
 
   const tasks = [
-    axios.get(`${url}/`, { timeout: 5000, headers, validateStatus: () => true }).catch(e => ({ error: e.message })),
+    axios.get(`${url}/v1/crawl/active`, { timeout: 5000, headers, validateStatus: () => true }).catch(e => ({ error: e.message })),
   ];
   if (bullAuthKey) {
     tasks.push(

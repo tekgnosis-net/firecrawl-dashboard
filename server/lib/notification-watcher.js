@@ -78,7 +78,7 @@ async function checkProxyUnreachable(db) {
 
 async function checkFirecrawlUnreachable(db) {
   try {
-    await internalGet(db, '/', { timeoutMs: 5000 });
+    await internalGet(db, '/v1/crawl/active', { timeoutMs: 5000 });
     return null; // Firecrawl root responded
   } catch (err) {
     return {
