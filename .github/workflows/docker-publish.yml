@@ -44,21 +44,55 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Decide which tags this build may publish.
+      #
+      # The release workflow starts this one by workflow_dispatch on main,
+      # so the git ref is a branch, not a tag: the version has to come from
+      # the `tag` input (falling back to the ref name on a real tag push).
+      #
+      # Floating tags are guarded so that rebuilding an OLD release never
+      # moves them backwards. `latest` is published only when this tag is
+      # the newest release overall, `X` only when it is the newest in its
+      # major line, `X.Y` only when it is the newest in its minor line.
+      # The exact `X.Y.Z` tag is always published.
+      - name: Resolve release tag and floating-tag eligibility
+        id: ver
+        shell: bash
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          TAG="${INPUT_TAG:-$GITHUB_REF_NAME}"
+          if ! printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::'$TAG' is not a release tag of the form vX.Y.Z"
+            exit 1
+          fi
+          MAJOR="$(printf '%s' "${TAG#v}" | cut -d. -f1)"
+          MINOR="$(printf '%s' "${TAG#v}" | cut -d. -f2)"
+          RELEASES="$(git ls-remote --tags --refs origin 'v*' | sed 's#.*refs/tags/##' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V)"
+          newest() { printf '%s\n' "$RELEASES" | grep -E "^v$1" | tail -n 1; }
+          is_newest() { if [ "$(newest "$1")" = "$TAG" ]; then echo true; else echo false; fi; }
+          {
+            echo "tag=$TAG"
+            echo "latest=$(is_newest '')"
+            echo "major=$(is_newest "${MAJOR}\.")"
+            echo "minor=$(is_newest "${MAJOR}\.${MINOR}\.")"
+          } | tee -a "$GITHUB_OUTPUT"
+
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          # The release workflow starts this one by workflow_dispatch on
-          # main, so the git ref is a branch, not a tag. The version must
-          # come from the `tag` input or the semver rules produce nothing
-          # and only `latest` is published. On a real tag push the input is
-          # empty and the rules fall back to the git ref.
+          # latest=false: metadata-action would otherwise add `latest`
+          # by itself for every semver tag, bypassing the guard above.
+          flavor: |
+            latest=false
           tags: |
-            type=semver,pattern={{version}},value=${{ github.event.inputs.tag }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.inputs.tag }}
-            type=semver,pattern={{major}},value=${{ github.event.inputs.tag }}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}},value=${{ steps.ver.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.ver.outputs.tag }},enable=${{ steps.ver.outputs.minor }}
+            type=semver,pattern={{major}},value=${{ steps.ver.outputs.tag }},enable=${{ steps.ver.outputs.major }}
+            type=raw,value=latest,enable=${{ steps.ver.outputs.latest }}
 
       # Emulation for the non-native target platforms. Only the production
       # stage runs emulated; the builder stage is pinned to BUILDPLATFORM.
