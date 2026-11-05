@@ -49,10 +49,15 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # The release workflow starts this one by workflow_dispatch on
+          # main, so the git ref is a branch, not a tag. The version must
+          # come from the `tag` input or the semver rules produce nothing
+          # and only `latest` is published. On a real tag push the input is
+          # empty and the rules fall back to the git ref.
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=semver,pattern={{version}},value=${{ github.event.inputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.inputs.tag }}
+            type=semver,pattern={{major}},value=${{ github.event.inputs.tag }}
             type=raw,value=latest,enable={{is_default_branch}}
 
       # Emulation for the non-native target platforms. Only the production

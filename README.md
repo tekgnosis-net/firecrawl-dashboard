@@ -112,7 +112,7 @@ services:
 docker compose up -d
 ```
 
-The published image is multi-arch: `linux/amd64` and `linux/arm64` (Raspberry Pi 4/5, Apple Silicon, ARM cloud instances). Docker pulls the matching one automatically. If you publish your own image from a fork, the platform list is the `DOCKER_PLATFORMS` repository variable read by `.github/workflows/docker-publish.yml` (default `linux/amd64,linux/arm64`).
+The published image is multi-arch: `linux/amd64` and `linux/arm64` (Raspberry Pi 4/5, Apple Silicon, ARM cloud instances). Docker pulls the matching one automatically. Besides `:latest`, each release is published under its version tags — `:2.4.1`, `:2.4` and `:2` — so you can pin an exact release or follow a minor/major line. If you publish your own image from a fork, the platform list is the `DOCKER_PLATFORMS` repository variable read by `.github/workflows/docker-publish.yml` (default `linux/amd64,linux/arm64`).
 
 - **Dashboard UI:** open **http://localhost:3001** and set your Firecrawl URL + (optional) Bull Auth Key in Settings.
 - **Proxy URL for your clients:** point your Firecrawl SDK at **http://localhost:3101** (same-origin paths — e.g. `POST /v1/scrape`). Every request gets logged and appears in the dashboard within seconds.
