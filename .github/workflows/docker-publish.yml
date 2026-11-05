@@ -18,6 +18,10 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  # Comma-separated target platforms for the published image. Override
+  # without editing this file by setting the repository variable
+  # DOCKER_PLATFORMS (Settings → Secrets and variables → Actions → Variables).
+  PLATFORMS: ${{ vars.DOCKER_PLATFORMS || 'linux/amd64,linux/arm64' }}
 
 jobs:
   build-and-push:
@@ -51,6 +55,11 @@ jobs:
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
 
+      # Emulation for the non-native target platforms. Only the production
+      # stage runs emulated; the builder stage is pinned to BUILDPLATFORM.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -58,6 +67,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          platforms: ${{ env.PLATFORMS }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

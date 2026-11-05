@@ -1,4 +1,8 @@
-FROM node:22-alpine AS builder
+# The builder stage only produces dist/ (static frontend assets), which is
+# architecture-independent — so it always runs on the build host's native
+# platform. In a multi-arch build only the production stage below is
+# emulated. BUILDPLATFORM is set automatically by BuildKit.
+FROM --platform=$BUILDPLATFORM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
