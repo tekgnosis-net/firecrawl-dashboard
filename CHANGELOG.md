@@ -1,3 +1,10 @@
+## [2.4.1](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.4.0...v2.4.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* **ui:** send dashboard proxy requests to the configured public URL ([31a1bc1](https://github.com/tekgnosis-net/firecrawl-dashboard/commit/31a1bc17fac808b6b04a5daf170d02a463c32947)), closes [#13](https://github.com/tekgnosis-net/firecrawl-dashboard/issues/13)
+
 # [2.4.0](https://github.com/tekgnosis-net/firecrawl-dashboard/compare/v2.3.2...v2.4.0) (2026-05-12)
 
 
