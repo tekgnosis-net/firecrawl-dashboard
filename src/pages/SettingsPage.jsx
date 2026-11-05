@@ -459,7 +459,7 @@ curl -X POST ${proxyBaseUrl}/v1/scrape \\
           </details>
           <Field
             label="Public URL override"
-            hint="Optional. The canonical URL the proxy will rewrite into async-job response bodies (the `url` and `next` fields on crawl/batch responses). Leave empty to derive from each inbound request's host headers — fine for single-ingress setups. Set this when the proxy is reachable via multiple hostnames (e.g. LAN IP + tunnel) and you want emitted URLs to be canonical."
+            hint="Optional. The canonical URL where the proxy is reachable from outside. Used for two things: the proxy rewrites it into async-job response bodies (the `url` and `next` fields on crawl/batch responses), and this dashboard sends its own Scrape/Crawl/Search/Map requests to it instead of to this host on the proxy port. Leave empty for direct access on host:port. Set it when the proxy sits behind a reverse proxy or is reachable via multiple hostnames (e.g. LAN IP + tunnel). Use https here if the dashboard itself is served over https, or the browser will block the requests as mixed content."
           >
             <input
               type="url"

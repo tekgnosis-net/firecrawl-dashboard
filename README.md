@@ -117,6 +117,16 @@ The published image is multi-arch: `linux/amd64` and `linux/arm64` (Raspberry Pi
 - **Dashboard UI:** open **http://localhost:3001** and set your Firecrawl URL + (optional) Bull Auth Key in Settings.
 - **Proxy URL for your clients:** point your Firecrawl SDK at **http://localhost:3101** (same-origin paths — e.g. `POST /v1/scrape`). Every request gets logged and appears in the dashboard within seconds.
 
+### Behind a Reverse Proxy
+
+By default the dashboard UI reaches the proxy at the hostname you opened the dashboard on, plus the proxy port (`http://<host>:3101`). Behind a reverse proxy that address usually does not exist from the browser's side. Set **Settings → Proxy URL → Public URL override** to the proxy's external URL (e.g. `https://fc.example.com`) and:
+
+- the dashboard's own Scrape / Crawl / Search / Map requests go to that URL instead of `<host>:3101`;
+- the SDK snippets and the copy-URL button on the Settings page show that URL;
+- the proxy rewrites that URL into the `url` / `next` fields of crawl and batch responses, so SDK pagination stays on the proxy.
+
+Leave it empty for direct `host:port` access. If the dashboard is served over `https`, the public URL must be `https` too, or the browser blocks the requests as mixed content. The setting applies on the next request — no restart.
+
 ### From Source
 
 ```bash
