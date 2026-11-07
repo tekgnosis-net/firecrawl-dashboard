@@ -136,6 +136,8 @@ npm install
 npm run dev    # starts dashboard (:3001), proxy (:3101), and vite (:3000) concurrently
 ```
 
+npm 12+ blocks dependency install scripts unless they are listed under `allowScripts` in `package.json`. The two this project needs are pre-approved there: `better-sqlite3` (downloads its prebuilt native binary) and `esbuild` (installs its platform binary for Vite). Without them `npm ci` completes but the dashboard fails at startup with "Could not locate the bindings file". The Docker image uses npm 10 and is unaffected.
+
 ## Configuration
 
 ### First-Time Setup
