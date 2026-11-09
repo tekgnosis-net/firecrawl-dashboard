@@ -29,10 +29,10 @@
     "url": "https://github.com/tekgnosis-net/firecrawl-dashboard"
   },
   "dependencies": {
-    "axios": "^1.16.0",
-    "better-sqlite3": "^12.9.0",
+    "axios": "^1.21.0",
+    "better-sqlite3": "^13.0.3",
     "cors": "^2.8.5",
-    "express": "^5.2.1"
+    "express": "^5.3.0"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
